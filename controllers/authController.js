@@ -14,11 +14,10 @@ exports.signup = async (req, res) => {
       return res.status(400).json({
         error: "Email and password are required",
       });
-    }
-
+    } 
     // Check existing user
-    const user = await User.findOne({ email });
-
+    const user = await User.findOne({ email }); 
+    
     if (user) {
       return res.status(400).json({
         error: "Email already exists",
