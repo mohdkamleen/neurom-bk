@@ -2,7 +2,7 @@ const { sendMail } = require("../utils/sendMail");
 const jwt = require("jsonwebtoken");
 const { setOTP, verifyOTP } = require("../config/otpStore");
 const User = require("../models/User"); 
-
+ 
 const bcrypt = require("bcrypt");
 
 exports.signup = async (req, res) => {
@@ -150,6 +150,14 @@ exports.login = async (req, res) => {
 // 🔹 Verify OTP
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
+ console.log(req.body);
+ 
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and otp are required",
+      });
+    }
 
   const result = verifyOTP(email, otp);
  
@@ -182,16 +190,55 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
-// 🔹 Profile (Protected)
 exports.getProfile = async (req, res) => {
-  try{
-  const user = await User.findById(req.user.id); 
-  res.json({ 
-    user,
-  });
+  try {
+
+    // Find user and remove password
+    const user = await User.findById(req.user.id).select("-password");
+
+    // User check
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+
   } catch (err) {
-    console.log(err); 
+    console.log(err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
   }
-}; 
- 
+};
   
+// Delete All Users
+exports.deleteAllUsers = async (req, res) => {
+  try {
+
+    // Delete all users
+    const result = await User.deleteMany({});
+
+    return res.status(200).json({
+      success: true,
+      message: "All users deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};

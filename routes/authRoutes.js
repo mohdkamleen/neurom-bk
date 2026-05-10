@@ -5,7 +5,8 @@ const {
   signup,
   login,
   verifyOtp,
-  getProfile
+  getProfile,
+  deleteAllUsers
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -14,6 +15,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/verifyOtp", verifyOtp); 
-router.get("/profile", authMiddleware, getProfile);
+router.post("/profile", authMiddleware, getProfile);
+router.delete("/delete-all-users", deleteAllUsers);
 
 module.exports = router;

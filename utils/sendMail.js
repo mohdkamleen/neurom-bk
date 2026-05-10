@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 /* ================= SEND MAIL FUNCTION ================= */
 const sendMail = async ({ to, subject, text, html }) => {
   return transporter.sendMail({
-    from: `"Pmal Group" <${process.env.EMAIL_USER}>`,
+    from: `"NueroM" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,
