@@ -1,5 +1,5 @@
 {
-  "name": "pmal-mktg-bk",
+  "name": "nuerom-bk",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mohdkamleen/pmal-mktg-bk.git"
+    "url": "git+https://github.com/mohdkamleen/nuerom-bk.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/mohdkamleen/pmal-mktg-bk/issues"
+    "url": "https://github.com/mohdkamleen/nuerom-bk/issues"
   },
-  "homepage": "https://github.com/mohdkamleen/pmal-mktg-bk#readme",
+  "homepage": "https://github.com/mohdkamleen/nuerom-bk#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
@@ -29,9 +29,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.4.1",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.4"
-  },
-  "devDependencies": {
+    "nodemailer": "^8.0.4",
     "nodemon": "^3.1.14"
   }
 }
