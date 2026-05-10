@@ -5,8 +5,7 @@ const {
   signup,
   login,
   verifyOtp,
-  getProfile,
-  getUsers
+  getProfile
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middleware/authMiddleware");
