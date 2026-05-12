@@ -1,46 +1,58 @@
 const { sendMail } = require("../utils/sendMail");
 const jwt = require("jsonwebtoken");
-const { setOTP, verifyOTP } = require("../config/otpStore");
-const User = require("../models/User"); 
- 
+const { setOTP, verifyOTP, setResetOTP, verifyResetOTP } = require("../config/otpStore");
+const User = require("../models/User");
 const bcrypt = require("bcrypt");
+const { validatePassword } = require("../utils/passwordPolicy");
 
-exports.signup = async (req, res) => {
+const PROFILE_UPDATE_KEYS = [
+  "name",
+  "age",
+  "height",
+  "weight",
+  "size",
+  "gender",
+  "phone",
+  "calorieGoal",
+  "glucoseTargetLow",
+  "glucoseTargetHigh",
+];
+
+function signToken(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      role: user.role || "user",
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+exports.sendOtp = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
-    // Validation
-    if (!email || !password) {
+    if (!email) {
       return res.status(400).json({
-        error: "Email and password are required",
+        error: "Email is required",
       });
-    } 
-    // Check existing user
-    const user = await User.findOne({ email }); 
-    
+    }
+
+    const emailNorm = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: emailNorm });
+
     if (user) {
       return res.status(400).json({
         error: "Email already exists",
       });
     }
 
-    // Generate OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Save temporary user
-    const newUser = new User({
-      email,
-      password: hashedPassword,
-    });
-
-    await newUser.save();
-
-    // Send mail
     await sendMail({
-      to: email,
+      to: emailNorm,
       subject: "Your OTP for Email Verification",
       html: `
         Your One-Time Password (OTP) is 
@@ -63,14 +75,12 @@ exports.signup = async (req, res) => {
       `,
     });
 
-    // Store OTP
-    setOTP(email, otp);
+    setOTP(emailNorm, otp);
 
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
-
   } catch (err) {
     console.log(err);
 
@@ -79,13 +89,12 @@ exports.signup = async (req, res) => {
       error: err.message,
     });
   }
-}; 
+};
 
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -93,8 +102,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check user
-    const user = await User.findOne({ email });
+    const emailNorm = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: emailNorm });
 
     if (!user) {
       return res.status(401).json({
@@ -103,7 +112,13 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Match password
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is blocked. Contact support.",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -113,19 +128,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate Token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      }
-    );
+    const token = signToken(user);
 
-    // Response
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -133,9 +137,20 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
+        name: user.name,
+        role: user.role || "user",
+        phone: user.phone,
+        gender: user.gender,
+        age: user.age,
+        height: user.height,
+        weight: user.weight,
+        size: user.size,
+        emailVerified: user.emailVerified,
+        calorieGoal: user.calorieGoal,
+        glucoseTargetLow: user.glucoseTargetLow,
+        glucoseTargetHigh: user.glucoseTargetHigh,
       },
     });
-
   } catch (error) {
     console.log(error);
 
@@ -146,56 +161,147 @@ exports.login = async (req, res) => {
   }
 };
 
-// 🔹 Verify OTP
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
- console.log(req.body);
- 
-    if (!email || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and otp are required",
-      });
-    }
+  const { email, password, otp } = req.body;
 
-  const result = verifyOTP(email, otp);
- 
+  if (!otp) {
+    return res.status(400).json({
+      success: false,
+      message: "Otp is required",
+    });
+  }
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required",
+    });
+  }
+
+  const pwCheck = validatePassword(password);
+  if (!pwCheck.ok) {
+    return res.status(400).json({ success: false, message: pwCheck.message });
+  }
+
+  const emailNorm = String(email).trim().toLowerCase();
+  const result = verifyOTP(emailNorm, otp);
+
   if (!result.success) {
     return res.status(400).json({ error: result.message });
   }
 
   try {
-    // 🔍 find user
-    let user = await User.findOne({ email });
+    const existing = await User.findOne({ email: emailNorm });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
 
-    // 🔐 create token with id + email
-    const token = jwt.sign(
-      {
-        id: user._id, 
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.json({
-      message: "OTP verified",
-      token,
-      user
+    const newUser = new User({
+      email: emailNorm,
+      password: hashedPassword,
+      emailVerified: true,
     });
 
+    await newUser.save();
+
+    const token = signToken(newUser);
+
+    const safeUser = await User.findById(newUser._id).select("-password");
+
+    return res.json({
+      success: true,
+      message: "OTP verified",
+      token,
+      user: safeUser,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const emailNorm = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: emailNorm });
+    if (!user || user.isBlocked) {
+      return res.json({
+        success: true,
+        message: "If an account exists for this email, a reset code was sent.",
+      });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    setResetOTP(emailNorm, otp);
+
+    await sendMail({
+      to: user.email,
+      subject: "NeuroM password reset code",
+      html: `
+        <p>Your password reset code is <b>${otp}</b></p>
+        <p>This code expires in 5 minutes.</p>
+      `,
+    });
+
+    return res.json({
+      success: true,
+      message: "If an account exists for this email, a reset code was sent.",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "email, otp, and newPassword are required",
+      });
+    }
+
+    const pwCheck = validatePassword(newPassword);
+    if (!pwCheck.ok) {
+      return res.status(400).json({ success: false, message: pwCheck.message });
+    }
+
+    const v = verifyResetOTP(String(email).trim().toLowerCase(), otp);
+    if (!v.success) {
+      return res.status(400).json({ success: false, message: v.message });
+    }
+
+    const user = await User.findOne({ email: String(email).trim().toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid request" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return res.json({ success: true, message: "Password updated. You can sign in now." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
 exports.getProfile = async (req, res) => {
   try {
-
-    // Find user and remove password
     const user = await User.findById(req.user.id).select("-password");
 
-    // User check
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -203,12 +309,10 @@ exports.getProfile = async (req, res) => {
       });
     }
 
-    // Success response
     return res.status(200).json({
       success: true,
       user,
     });
-
   } catch (err) {
     console.log(err);
 
@@ -218,23 +322,43 @@ exports.getProfile = async (req, res) => {
     });
   }
 };
-  
-// Delete All Users
-exports.deleteAllUsers = async (req, res) => {
-  try {
 
-    // Delete all users
-    const result = await User.deleteMany({});
+exports.updateProfile = async (req, res) => {
+  try {
+    const $set = {};
+    for (const key of PROFILE_UPDATE_KEYS) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        $set[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys($set).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Send at least one of: ${PROFILE_UPDATE_KEYS.join(", ")}`,
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "All users deleted successfully",
-      deletedCount: result.deletedCount,
+      message: "Profile updated",
+      user,
     });
-
-  } catch (error) {
-    console.log(error);
-
+  } catch (err) {
+    console.log(err);
     return res.status(500).json({
       success: false,
       message: "Server Error",

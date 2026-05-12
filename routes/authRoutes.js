@@ -1,39 +1,26 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 
 const {
-  signup,
+  sendOtp,
   login,
   verifyOtp,
+  forgotPassword,
+  resetPassword,
   getProfile,
-  deleteAllUsers
+  updateProfile,
 } = require("../controllers/authController");
- 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "No token" });
-  }
+const authMiddleware = require("../middleware/authMiddleware");
 
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded; // { id, email }
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Invalid token" });
-  }
-};
-
-// Routes
-router.post("/signup", signup);
+router.post("/sendOtp", sendOtp);
 router.post("/login", login);
-router.post("/verifyOtp", verifyOtp); 
+router.post("/verifyOtp", verifyOtp);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+router.get("/profile", authMiddleware, getProfile);
 router.post("/profile", authMiddleware, getProfile);
-router.delete("/delete-all-users", deleteAllUsers);
+router.patch("/profile", authMiddleware, updateProfile);
+router.put("/profile", authMiddleware, updateProfile);
 
 module.exports = router;
