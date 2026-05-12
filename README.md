@@ -51,8 +51,7 @@ Password Requirements:
 ### Request Body
 
 ```json
-{
-  "name": "John Doe",
+{ 
   "email": "user@example.com",
   "otp": "1234",
   "password": "Password@123"
