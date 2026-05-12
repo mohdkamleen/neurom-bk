@@ -5,19 +5,6 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const { validatePassword } = require("../utils/passwordPolicy");
 
-const PROFILE_UPDATE_KEYS = [
-  "name",
-  "age",
-  "height",
-  "weight",
-  "size",
-  "gender",
-  "phone",
-  "calorieGoal",
-  "glucoseTargetLow",
-  "glucoseTargetHigh",
-];
-
 function signToken(user) {
   return jwt.sign(
     {
@@ -325,23 +312,36 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const $set = {};
-    for (const key of PROFILE_UPDATE_KEYS) {
-      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
-        $set[key] = req.body[key];
-      }
-    }
+    const blockedFields = new Set([
+      "_id",
+      "__v",
+      "password",
+      "role",
+      "isBlocked",
+      "emailVerified",
+      "createdAt",
+      "updatedAt",
+    ]);
 
-    if (Object.keys($set).length === 0) {
+    const updateFields = Object.fromEntries(
+      Object.entries(req.body || {})
+        .filter(([key]) => !blockedFields.has(key) && User.schema.path(key))
+        .map(([key, value]) => [
+          key,
+          key === "email" && value != null ? String(value).trim().toLowerCase() : value,
+        ])
+    );
+
+    if (!Object.keys(updateFields).length) {
       return res.status(400).json({
         success: false,
-        message: `Send at least one of: ${PROFILE_UPDATE_KEYS.join(", ")}`,
+        message: "Send at least one valid profile field to update",
       });
     }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { $set },
+      updateFields,
       { new: true, runValidators: true }
     ).select("-password");
 
@@ -359,6 +359,12 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already in use",
+      });
+    }
     return res.status(500).json({
       success: false,
       message: "Server Error",

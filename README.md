@@ -166,6 +166,7 @@ Authorization: Bearer JWT_TOKEN
 ## 7. Update Profile
 
 ### PATCH `/api/auth/profile`
+### PUT `/api/auth/profile`
 
 ### Headers
 
@@ -175,18 +176,15 @@ Authorization: Bearer JWT_TOKEN
 
 ### Request Body
 
+Send one or more valid profile fields to update. Protected fields such as `password`, `role`, `isBlocked`, and `emailVerified` cannot be updated via this endpoint.
+
+Example:
+
 ```json
 {
   "name": "John Doe",
-  "age": 25,
-  "height": 175,
-  "weight": 70,
-  "size": "M",
-  "gender": "Male",
   "phone": "9876543210",
-  "calorieGoal": 2200,
-  "glucoseTargetLow": 80,
-  "glucoseTargetHigh": 140
+  "calorieGoal": 2200
 }
 ```
 
@@ -444,6 +442,62 @@ Optional Query:
 
 ```http
 Authorization: Bearer JWT_TOKEN
+```
+
+---
+
+# Project Structure
+
+```text
+index.js
+package.json
+README.md
+
+config/
+  db.js
+  otpStore.js
+
+controllers/
+  adminController.js
+  authController.js
+  dashboardController.js
+  foodController.js
+  glucoseController.js
+  mealController.js
+  medicineController.js
+  messageController.js
+  predictionController.js
+  reportsController.js
+
+middleware/
+  adminMiddleware.js
+  authMiddleware.js
+
+models/
+  ChatThread.js
+  GlucoseReading.js
+  MealLog.js
+  MedicineLog.js
+  Message.js
+  User.js
+
+routes/
+  adminRoutes.js
+  authRoutes.js
+  dashboardRoutes.js
+  foodRoutes.js
+  glucoseRoutes.js
+  mealRoutes.js
+  medicineRoutes.js
+  messageRoutes.js
+  predictionRoutes.js
+  reportRoutes.js
+
+utils/
+  dateRange.js
+  mealAggregate.js
+  passwordPolicy.js
+  sendMail.js
 ```
 
 ---
