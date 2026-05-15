@@ -226,7 +226,7 @@ exports.forgotPassword = async (req, res) => {
         success: true,
         message: "If an account exists for this email, a reset code was sent.",
       });
-    }
+    } 
 
     const otp = Math.floor(1000 + Math.random() * 9000);
     setResetOTP(emailNorm, otp);
