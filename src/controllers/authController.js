@@ -250,7 +250,7 @@ exports.verifyOtp = async (req, res) => {
 
 exports.googleAuth = async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, flow } = req.body;
     if (!idToken) {
       return res.status(400).json({ success: false, message: "idToken is required" });
     }
@@ -268,6 +268,13 @@ exports.googleAuth = async (req, res) => {
       (await User.findOne({ email: profile.email }));
 
     if (user) {
+      if (flow === "signup") {
+        return res.status(409).json({
+          success: false,
+          message: "An account with this email already exists. Please sign in instead.",
+          redirectToSignIn: true,
+        });
+      }
       if (user.appleId && !user.googleId) {
         return res.status(409).json({
           success: false,
@@ -301,7 +308,7 @@ exports.googleAuth = async (req, res) => {
 
 exports.appleAuth = async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, flow } = req.body;
     if (!idToken) {
       return res.status(400).json({ success: false, message: "idToken is required" });
     }
@@ -315,6 +322,13 @@ exports.appleAuth = async (req, res) => {
     }
 
     if (user) {
+      if (flow === "signup") {
+        return res.status(409).json({
+          success: false,
+          message: "An account with this email already exists. Please sign in instead.",
+          redirectToSignIn: true,
+        });
+      }
       if (user.googleId && !user.appleId) {
         return res.status(409).json({
           success: false,
