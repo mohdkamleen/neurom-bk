@@ -7,19 +7,24 @@ const SEGMENT_COLORS = {
   Sugar: "#9575CD",
 };
 
-/** Shape expected by neurom-native-fr DietChart. */
+/** Shape expected by neurom-native-fr DietChart. Returns null when no meals logged. */
 function buildDietSegments(dietSummary) {
   const t = dietSummary?.totals || {};
   const p = dietSummary?.percentages || {};
   const cal = Number(t.calories) || 0;
 
+  // No meals logged today — return null so the frontend shows "No data"
+  if (!cal && !Number(t.proteinG) && !Number(t.carbsG) && !Number(t.fatG)) {
+    return null;
+  }
+
   const rows = [
     { label: "Protein", amount: Number(t.proteinG) || 0, percent: p.protein ?? 0 },
-    { label: "Fat", amount: Number(t.fatG) || 0, percent: p.fat ?? 0 },
-    { label: "Fiber", amount: Number(t.fiberG) || 0, percent: 0 },
-    { label: "Carbs", amount: Number(t.carbsG) || 0, percent: p.carbs ?? 0 },
-    { label: "Cal", amount: cal, percent: 0 },
-    { label: "Sugar", amount: Number(t.sugarG) || 0, percent: 0 },
+    { label: "Fat",     amount: Number(t.fatG)     || 0, percent: p.fat     ?? 0 },
+    { label: "Fiber",   amount: Number(t.fiberG)   || 0, percent: 0 },
+    { label: "Carbs",   amount: Number(t.carbsG)   || 0, percent: p.carbs   ?? 0 },
+    { label: "Cal",     amount: cal,                      percent: 0 },
+    { label: "Sugar",   amount: Number(t.sugarG)   || 0, percent: 0 },
   ];
 
   const macroSum =

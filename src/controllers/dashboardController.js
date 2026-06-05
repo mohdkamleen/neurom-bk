@@ -17,7 +17,8 @@ function dayPeriodGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good Morning";
   if (h < 17) return "Good Afternoon";
-  return "Good Evening";
+  if (h < 21) return "Good Evening";
+  return "Good Night";
 }
 
 function statusForValue(value, low, high) {
@@ -41,8 +42,8 @@ async function buildInsights(userId) {
       insulinSensitivityPercent: null,
       a1cEstimatePercent: null,
       avgGlucoseMgDl: null,
-      modelAccuracyPercent: 72,
-      modelAccuracyTrend: "Building",
+      modelAccuracyPercent: null,
+      modelAccuracyTrend: null,
       note: "Log more glucose readings for estimates.",
     };
   }
