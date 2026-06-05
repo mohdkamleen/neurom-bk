@@ -1,4 +1,25 @@
 /**
+ * Calculates BMI from height (cm) and weight (kg).
+ * Returns null if either value is missing or invalid.
+ */
+function calcBmi(heightCm, weightKg) {
+  if (!heightCm || !weightKg || heightCm <= 0 || weightKg <= 0) return null;
+  const bmi = weightKg / Math.pow(heightCm / 100, 2);
+  return Math.round(bmi * 10) / 10;
+}
+
+/**
+ * Returns a BMI category label.
+ */
+function bmiCategory(bmi) {
+  if (bmi === null) return null;
+  if (bmi < 18.5) return "Underweight";
+  if (bmi < 25)   return "Normal weight";
+  if (bmi < 30)   return "Overweight";
+  return "Obese";
+}
+
+/**
  * Calculates the current age in years from an ISO date string.
  * Returns null if the date is missing or invalid.
  */
@@ -24,6 +45,9 @@ function serializeUser(doc) {
   // Always derive age from DOB so it stays current; fall back to stored age
   const age = calcAge(u.dateOfBirth) ?? u.age ?? null;
 
+  const bmi      = calcBmi(u.height, u.weight);
+  const bmiLabel = bmiCategory(bmi);
+
   return {
     id: String(u._id || u.id),
     email: u.email,
@@ -34,6 +58,8 @@ function serializeUser(doc) {
     dateOfBirth: u.dateOfBirth,
     height: u.height,
     weight: u.weight,
+    bmi,
+    bmiCategory: bmiLabel,
     bloodGroup: u.bloodGroup,
     avatarUrl: u.avatarUrl,
     emailVerified: !!u.emailVerified,
