@@ -1,23 +1,12 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-/* ================= MAIL SETUP ================= */
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-/* ================= SEND MAIL FUNCTION ================= */
+const FROM = process.env.RESEND_FROM || "NeuroM <onboarding@resend.dev>";
+
 const sendMail = async ({ to, subject, text, html }) => {
-  return transporter.sendMail({
-    from: `"NeuroM" <${process.env.EMAIL_USER}>`,
+  return resend.emails.send({
+    from: FROM,
     to,
     subject,
     text,
