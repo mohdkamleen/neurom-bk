@@ -1,12 +1,19 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const FROM = process.env.RESEND_FROM || "NeuroM <onboarding@resend.dev>";
+// Brevo (Sendinblue) SMTP — works with any verified sender email, no domain required
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_SMTP_USER, // your Brevo account email
+    pass: process.env.BREVO_SMTP_KEY,  // Brevo SMTP key (not account password)
+  },
+});
 
 const sendMail = async ({ to, subject, text, html }) => {
-  return resend.emails.send({
-    from: FROM,
+  return transporter.sendMail({
+    from: `"NeuroM" <${process.env.BREVO_SENDER_EMAIL}>`,
     to,
     subject,
     text,
