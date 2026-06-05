@@ -3,8 +3,11 @@ const router = express.Router();
 
 const {
   sendOtp,
+  resendOtp,
   login,
   verifyOtp,
+  googleAuth,
+  appleAuth,
   forgotPassword,
   resetPassword,
   getProfile,
@@ -14,8 +17,11 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.post("/sendOtp", sendOtp);
+router.post("/resendOtp", resendOtp);
 router.post("/login", login);
 router.post("/verifyOtp", verifyOtp);
+router.post("/google", googleAuth);
+router.post("/apple", appleAuth);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/profile", authMiddleware, getProfile);

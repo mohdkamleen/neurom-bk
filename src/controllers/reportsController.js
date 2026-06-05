@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const MealLog = require("../models/MealLog");
 const User = require("../models/User");
 const { sumMealsForDay } = require("../utils/mealAggregate");
+const { buildDietSegments } = require("../utils/dietSegments");
 
 exports.dietChart = async (req, res) => {
   try {
@@ -14,7 +15,12 @@ exports.dietChart = async (req, res) => {
     const goal = user?.calorieGoal ?? 2200;
 
     const diet = await sumMealsForDay(req.user.id, dateYmd, goal);
-    return res.json({ success: true, dietChart: diet });
+    return res.json({
+      success: true,
+      date: dateYmd,
+      dietChart: diet,
+      segments: buildDietSegments(diet),
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: "Server error" });

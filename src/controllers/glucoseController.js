@@ -1,11 +1,10 @@
 const GlucoseReading = require("../models/GlucoseReading");
 const User = require("../models/User");
 const { glucoseHistoryWindow } = require("../utils/dateRange");
+const { glucoseDisplayStatus } = require("../utils/glucoseDisplay");
 
 function statusForValue(value, low, high) {
-  if (value < low) return "Low";
-  if (value > high) return "High";
-  return "In Range";
+  return glucoseDisplayStatus(value, low, high);
 }
 
 exports.list = async (req, res) => {
