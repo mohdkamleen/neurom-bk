@@ -1,24 +1,33 @@
-const nodemailer = require("nodemailer");
-
-// Brevo (Sendinblue) SMTP — works with any verified sender email, no domain required
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_SMTP_USER, // your Brevo account email
-    pass: process.env.BREVO_SMTP_KEY,  // Brevo SMTP key (not account password)
-  },
-});
-
+// Brevo HTTP API — uses HTTPS port 443, not blocked on Render free tier
 const sendMail = async ({ to, subject, text, html }) => {
-  return transporter.sendMail({
-    from: `"NeuroM" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-    html,
+  const recipients = Array.isArray(to)
+    ? to.map((email) => ({ email }))
+    : [{ email: to }];
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        name: "NeuroM",
+        email: process.env.EMAIL_USER,
+      },
+      to: recipients,
+      subject,
+      textContent: text,
+      htmlContent: html,
+    }),
   });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Brevo API error: ${err.message}`);
+  }
+
+  return res.json();
 };
 
 module.exports = { sendMail };
