@@ -287,6 +287,13 @@ exports.googleAuth = async (req, res) => {
       if (profile.emailVerified) user.emailVerified = true;
       await user.save();
     } else {
+      if (flow === "signin") {
+        return res.status(404).json({
+          success: false,
+          message: "No account found with this Google account. Please sign up first.",
+          redirectToSignUp: true,
+        });
+      }
       user = await User.create({
         email: profile.email,
         googleId: profile.googleId,
@@ -340,6 +347,13 @@ exports.appleAuth = async (req, res) => {
       if (profile.emailVerified) user.emailVerified = true;
       await user.save();
     } else {
+      if (flow === "signin") {
+        return res.status(404).json({
+          success: false,
+          message: "No account found with this Apple account. Please sign up first.",
+          redirectToSignUp: true,
+        });
+      }
       if (!profile.email) {
         return res.status(400).json({
           success: false,
