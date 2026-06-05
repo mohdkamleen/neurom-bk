@@ -70,35 +70,28 @@ exports.sendOtp = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
-        error: "Email is required",
-      });
+      return res.status(400).json({ error: "Email is required" });
     }
 
     const emailNorm = String(email).trim().toLowerCase();
     const user = await User.findOne({ email: emailNorm });
 
     if (user) {
-      return res.status(400).json({
-        error: "Email already exists",
-      });
+      return res.status(400).json({ error: "Email already exists" });
     }
 
     const otp = Math.floor(1000 + Math.random() * 9000);
-    await mailOtp(emailNorm, otp);
     setOTP(emailNorm, otp);
 
-    return res.status(200).json({
-      success: true,
-      message: "OTP sent successfully",
-    });
+    // Respond immediately, send email in background
+    res.status(200).json({ success: true, message: "OTP sent successfully" });
+
+    mailOtp(emailNorm, otp).catch((err) =>
+      console.error("OTP mail error:", err.message)
+    );
   } catch (err) {
     console.log(err);
-
-    return res.status(500).json({
-      success: false,
-      error: err.message,
-    });
+    return res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -120,10 +113,13 @@ exports.resendOtp = async (req, res) => {
     }
 
     const otp = Math.floor(1000 + Math.random() * 9000);
-    await mailOtp(emailNorm, otp);
     setOTP(emailNorm, otp);
 
-    return res.json({ success: true, message: "OTP resent successfully" });
+    res.json({ success: true, message: "OTP resent successfully" });
+
+    mailOtp(emailNorm, otp).catch((err) =>
+      console.error("Resend OTP mail error:", err.message)
+    );
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: err.message });
@@ -381,19 +377,19 @@ exports.forgotPassword = async (req, res) => {
     const otp = Math.floor(1000 + Math.random() * 9000);
     setResetOTP(emailNorm, otp);
 
-    await sendMail({
+    res.json({
+      success: true,
+      message: "If an account exists for this email, a reset code was sent.",
+    });
+
+    sendMail({
       to: user.email,
       subject: "NeuroM password reset code",
       html: `
         <p>Your password reset code is <b>${otp}</b></p>
         <p>This code expires in 5 minutes.</p>
       `,
-    });
-
-    return res.json({
-      success: true,
-      message: "If an account exists for this email, a reset code was sent.",
-    });
+    }).catch((err) => console.error("Reset password mail error:", err.message));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: "Server error" });
