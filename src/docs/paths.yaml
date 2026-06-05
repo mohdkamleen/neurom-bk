@@ -1,0 +1,515 @@
+paths:
+
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+
+  /auth/sendOtp:
+    post:
+      tags: [Auth]
+      summary: Send OTP to email for registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password]
+              properties:
+                email:    { type: string, format: email, example: user@example.com }
+                name:     { type: string, example: Alex }
+                password: { type: string, example: Secret@123 }
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400": { description: Validation error }
+        "409": { description: Email already in use }
+
+  /auth/resendOtp:
+    post:
+      tags: [Auth]
+      summary: Resend OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: OTP resent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+
+  /auth/verifyOtp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and complete registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email: { type: string, format: email }
+                otp:   { type: string, example: "123456" }
+      responses:
+        "200":
+          description: Email verified, JWT returned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { description: Invalid or expired OTP }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:    { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401": { description: Invalid credentials }
+
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Sign in / register with Google ID token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+
+  /auth/apple:
+    post:
+      tags: [Auth]
+      summary: Sign in / register with Apple identity token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identityToken]
+              properties:
+                identityToken: { type: string }
+                fullName:
+                  type: object
+                  properties:
+                    givenName:  { type: string }
+                    familyName: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Send password-reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Reset email sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:    { type: string }
+                password: { type: string, example: NewSecret@123 }
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400": { description: Invalid or expired token }
+
+  /auth/profile:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  user:    { $ref: "#/components/schemas/User" }
+        "401": { description: Unauthorized }
+    patch:
+      tags: [Auth]
+      summary: Update current user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:        { type: string }
+                phone:       { type: string }
+                gender:      { type: string }
+                dateOfBirth: { type: string, format: date-time }
+                avatarUrl:   { type: string }
+                calorieGoal: { type: integer }
+                glucoseTargetLow:  { type: number }
+                glucoseTargetHigh: { type: number }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  user:    { $ref: "#/components/schemas/User" }
+
+  # ── Onboarding ────────────────────────────────────────────────────────────────
+
+  /onboarding/status:
+    get:
+      tags: [Onboarding]
+      summary: Check if the current user has completed onboarding
+      responses:
+        "200":
+          description: Onboarding status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:             { type: boolean }
+                  onboardingCompleted: { type: boolean }
+                  hasName:             { type: boolean }
+        "401": { description: Unauthorized }
+
+  /onboarding/complete:
+    post:
+      tags: [Onboarding]
+      summary: Submit all onboarding answers
+      description: |
+        Accepts the full `ONBOARDING_FORM` AsyncStorage payload from the mobile app.
+        Saves health profile data and marks `onboardingCompleted = true`.
+        All sections are optional — only provided fields are updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingPayload" }
+      responses:
+        "200":
+          description: Onboarding saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  user:    { $ref: "#/components/schemas/User" }
+        "401": { description: Unauthorized }
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+
+  /dashboard/home:
+    get:
+      tags: [Dashboard]
+      summary: Get home screen data (glucose summary, meals, medicines, predictions)
+      responses:
+        "200":
+          description: Home dashboard payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:    { type: object }
+        "401": { description: Unauthorized }
+
+  # ── Glucose ───────────────────────────────────────────────────────────────────
+
+  /glucose:
+    get:
+      tags: [Glucose]
+      summary: List glucose readings for the current user
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          description: Start date filter (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          description: End date filter (YYYY-MM-DD)
+      responses:
+        "200":
+          description: List of readings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  readings:
+                    type: array
+                    items: { $ref: "#/components/schemas/GlucoseReading" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Glucose]
+      summary: Log a new glucose reading
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:      { type: number, example: 105 }
+                unit:       { type: string, example: mg/dL }
+                type:       { type: string, example: fasting }
+                note:       { type: string }
+                recordedAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Reading created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  reading: { $ref: "#/components/schemas/GlucoseReading" }
+        "401": { description: Unauthorized }
+
+  /glucose/{id}:
+    delete:
+      tags: [Glucose]
+      summary: Delete a glucose reading
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  # ── Meals ─────────────────────────────────────────────────────────────────────
+
+  /meals:
+    get:
+      tags: [Meals]
+      summary: List meal logs for the current user
+      parameters:
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+          description: Filter by date (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Meal list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meals:
+                    type: array
+                    items: { $ref: "#/components/schemas/MealLog" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Meals]
+      summary: Log a meal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, calories]
+              properties:
+                name:     { type: string, example: Grilled chicken }
+                calories: { type: number, example: 320 }
+                mealType: { type: string, example: lunch }
+                loggedAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Meal logged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meal:    { $ref: "#/components/schemas/MealLog" }
+        "401": { description: Unauthorized }
+
+  /meals/{id}:
+    get:
+      tags: [Meals]
+      summary: Get a single meal log
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Meal detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meal:    { $ref: "#/components/schemas/MealLog" }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  # ── Medicine ──────────────────────────────────────────────────────────────────
+
+  /medicine:
+    get:
+      tags: [Medicine]
+      summary: List medicine logs for the current user
+      responses:
+        "200":
+          description: Medicine list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  medicines:
+                    type: array
+                    items: { $ref: "#/components/schemas/MedicineLog" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Medicine]
+      summary: Log a medicine intake
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:    { type: string, example: Metformin }
+                dose:    { type: string, example: 500mg }
+                takenAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Medicine logged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  medicine: { $ref: "#/components/schemas/MedicineLog" }
+        "401": { description: Unauthorized }
+
+  # ── Manual entries ────────────────────────────────────────────────────────────
+
+  /entries/manual:
+    post:
+      tags: [Entries]
+      summary: Submit a manual health data entry (glucose + meal in one call)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                glucose:
+                  type: object
+                  properties:
+                    value: { type: number }
+                    type:  { type: string }
+                meal:
+                  type: object
+                  properties:
+                    name:     { type: string }
+                    calories: { type: number }
+      responses:
+        "200":
+          description: Entry saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "401": { description: Unauthorized }

@@ -1,7 +1,28 @@
+/**
+ * Calculates the current age in years from an ISO date string.
+ * Returns null if the date is missing or invalid.
+ */
+function calcAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return null;
+
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age > 0 && age < 130 ? age : null;
+}
+
 function serializeUser(doc) {
   if (!doc) return null;
   const u = typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
   delete u.password;
+
+  // Always derive age from DOB so it stays current; fall back to stored age
+  const age = calcAge(u.dateOfBirth) ?? u.age ?? null;
 
   return {
     id: String(u._id || u.id),
@@ -9,11 +30,11 @@ function serializeUser(doc) {
     name: u.name || "",
     phone: u.phone,
     gender: u.gender,
-    age: u.age,
+    age,
+    dateOfBirth: u.dateOfBirth,
     height: u.height,
     weight: u.weight,
     bloodGroup: u.bloodGroup,
-    dateOfBirth: u.dateOfBirth,
     avatarUrl: u.avatarUrl,
     emailVerified: !!u.emailVerified,
     role: u.role || "user",
@@ -26,6 +47,7 @@ function serializeUser(doc) {
       type: u.diabetesType,
       measureFrequency: u.glucoseMeasureFrequency,
     },
+    highBloodSugar: u.highBloodSugar,
     familyGlucoseHistory: u.familyGlucoseHistory,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,

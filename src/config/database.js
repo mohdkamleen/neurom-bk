@@ -14,12 +14,8 @@ const connectDB = async () => {
     );
 
   } catch (err) {
-    console.error(
-      'MongoDB Connection Error:',
-      err.message
-    );
-
-    process.exit(1);
+    console.error('MongoDB Connection Error:', err.message);
+    console.warn('⚠  Running without database — API docs still available at /api-docs');
   }
 };
 

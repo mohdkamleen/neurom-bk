@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
     diabetesDiagnosed: { type: String },
     diabetesType: { type: String },
     glucoseMeasureFrequency: { type: String },
+    highBloodSugar: { type: String },
     familyGlucoseHistory: { type: String },
   },
   { timestamps: true }
