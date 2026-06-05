@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 const sendMail = async ({ to, subject, text, html }) => {
   return transporter.sendMail({
-    from: `"NeuroM" <${process.env.BREVO_SENDER_EMAIL}>`,
+    from: `"NeuroM" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,
