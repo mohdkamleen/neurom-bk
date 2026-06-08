@@ -32,7 +32,11 @@ Store `token` and send `Authorization: Bearer <token>` on protected routes.
 | GET | `/dashboard/home?glucoseRange=7d` | `greeting`, `glucoseCard` (7d/14d/30d), `dietChart.segments`, `insights`, `topImpactFoods` |
 | GET | `/glucose?range=7d` | History |
 | POST | `/glucose` | `{ "valueMgDl", "measuredAt?", "notes?" }` |
-| POST | `/entries/manual` | `{ "meal?", "portion?", "glucoseMgDl?" }` |
+| POST | `/entries/manual` | `{ foods[], medicines[], glucose? }` — full manual entry from Add Data screen |
+| GET | `/entries/manual?from=&to=&date=` | Same shape as POST — list foods, medicines, glucose readings |
+| GET | `/entries/:id?type=meal\|medicine\|glucose` | Single entry detail (auto-detects type) |
+| POST | `/entries/barcode` | Scanner result: food or medicine with nutrition / dosage |
+| GET | `/entries/barcode/:id` | Saved scanner entry in barcode payload shape |
 | GET | `/food/search?q=egg` | No auth |
 | GET | `/food/product/:code` | Barcode / OFF code |
 | GET | `/food/nutrients-for-serving?code=&grams=` | |

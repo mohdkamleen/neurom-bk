@@ -288,16 +288,79 @@
       "name": "Entries",
       "item": [
         {
-          "name": "Manual entry (meal + glucose)",
+          "name": "Get manual entries (foods + medicines + glucose)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/entries/manual?date=2026-06-04",
+              "host": ["{{baseUrl}}"],
+              "path": ["entries", "manual"],
+              "query": [
+                { "key": "from", "value": "2026-06-01", "disabled": true },
+                { "key": "to", "value": "2026-06-08", "disabled": true },
+                { "key": "date", "value": "2026-06-04" }
+              ]
+            },
+            "description": "Returns foods, medicines, and glucoseReadings in the same shape as POST."
+          }
+        },
+        {
+          "name": "Get entry by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/entries/{{entryId}}?type=meal",
+              "host": ["{{baseUrl}}"],
+              "path": ["entries", "{{entryId}}"],
+              "query": [{ "key": "type", "value": "meal", "description": "meal | medicine | glucose (optional)" }]
+            }
+          }
+        },
+        {
+          "name": "Get barcode entry by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/entries/barcode/{{entryId}}"
+          }
+        },
+        {
+          "name": "Manual entry (foods + medicines + glucose)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"meal\": \"Oatmeal with berries\",\n  \"portion\": \"1 bowl\",\n  \"glucoseMgDl\": 112,\n  \"consumedAt\": \"2026-06-04T09:00:00.000Z\",\n  \"notes\": \"Breakfast\"\n}"
+              "raw": "{\n  \"foods\": [\n    {\n      \"foodType\": \"Breakfast\",\n      \"name\": \"Oatmeal with berries\",\n      \"servingSize\": \"100\",\n      \"servings\": 1,\n      \"nutrition\": { \"calories\": 150, \"carbs\": 27, \"fat\": 3, \"protein\": 5, \"sugar\": 1, \"fiber\": 4 },\n      \"consumedAt\": \"2026-06-04T09:00:00.000Z\"\n    }\n  ],\n  \"medicines\": [\n    {\n      \"name\": \"Metformin\",\n      \"dosage\": \"500\",\n      \"form\": \"Tablet\",\n      \"quantity\": 1,\n      \"takenAt\": \"2026-06-04T08:00:00.000Z\"\n    }\n  ],\n  \"glucose\": {\n    \"valueMgDl\": 112,\n    \"measuredAt\": \"2026-06-04T08:30:00.000Z\"\n  }\n}"
             },
             "url": "{{baseUrl}}/entries/manual",
-            "description": "At least meal or glucose required. glucoseMgDl aliases: valueMgDl."
+            "description": "At least one of foods, medicines, or glucose required. Legacy `{ meal, portion, glucoseMgDl }` still works."
+          }
+        },
+        {
+          "name": "Barcode scan entry (food)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"4000539001404\",\n  \"productName\": \"Dark Chocolate\",\n  \"brand\": \"Amul\",\n  \"category\": \"food\",\n  \"eatenAt\": \"2026-06-04T12:00:00.000Z\",\n  \"foodType\": \"Snack\",\n  \"servingSize\": \"120\",\n  \"servings\": 1,\n  \"nutrition\": { \"calories\": 120, \"carbs\": 20, \"fat\": 2, \"protein\": 5, \"sugar\": 22, \"fiber\": 18 }\n}"
+            },
+            "url": "{{baseUrl}}/entries/barcode"
+          }
+        },
+        {
+          "name": "Barcode scan entry (medicine)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"8901207060428\",\n  \"productName\": \"Himalaya Diabecon DS\",\n  \"brand\": \"Himalaya\",\n  \"category\": \"medicine\",\n  \"eatenAt\": \"2026-06-04T08:00:00.000Z\",\n  \"medicine\": {\n    \"medicineName\": \"Diabecon DS\",\n    \"dosage\": 60,\n    \"dosageUnit\": \"mg\",\n    \"form\": \"Tablet\",\n    \"quantity\": 1\n  }\n}"
+            },
+            "url": "{{baseUrl}}/entries/barcode"
           }
         }
       ]

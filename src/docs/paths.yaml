@@ -486,9 +486,42 @@ paths:
   # ── Manual entries ────────────────────────────────────────────────────────────
 
   /entries/manual:
+    get:
+      tags: [Entries]
+      summary: List manual entry data (foods, medicines, glucose)
+      description: Returns the same field shapes as POST /entries/manual.
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+          description: Filter to a single calendar day (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Entry details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:         { type: boolean }
+                  from:            { type: string, format: date-time }
+                  to:              { type: string, format: date-time }
+                  foods:           { type: array, items: { type: object } }
+                  medicines:       { type: array, items: { type: object } }
+                  glucoseReadings: { type: array, items: { type: object } }
+        "401": { description: Unauthorized }
     post:
       tags: [Entries]
-      summary: Submit a manual health data entry (glucose + meal in one call)
+      summary: Submit manual health data (foods, medicines, glucose)
+      description: |
+        Full payload from neurom-native-fr Manual Entry screen.
+        Legacy `{ meal, portion, glucoseMgDl }` is still accepted.
       requestBody:
         required: true
         content:
@@ -496,20 +529,154 @@ paths:
             schema:
               type: object
               properties:
+                foods:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      foodType:  { type: string, example: Breakfast }
+                      name:      { type: string }
+                      servingSize: { type: string, example: "100" }
+                      servings:  { type: number }
+                      nutrition:
+                        type: object
+                        properties:
+                          calories: { type: number }
+                          carbs:    { type: number }
+                          fat:      { type: number }
+                          protein:  { type: number }
+                          sugar:    { type: number }
+                          fiber:    { type: number }
+                      consumedAt: { type: string, format: date-time }
+                medicines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:     { type: string }
+                      dosage:   { type: string }
+                      form:     { type: string }
+                      quantity: { type: number }
+                      takenAt:  { type: string, format: date-time }
                 glucose:
                   type: object
                   properties:
-                    value: { type: number }
-                    type:  { type: string }
-                meal:
-                  type: object
-                  properties:
-                    name:     { type: string }
-                    calories: { type: number }
+                    valueMgDl:  { type: number }
+                    measuredAt: { type: string, format: date-time }
       responses:
-        "200":
+        "201":
           description: Entry saved
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/SuccessMessage" }
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  message:   { type: string }
+                  meals:     { type: array, items: { type: object } }
+                  medicines: { type: array, items: { type: object } }
+                  reading:   { type: object }
+        "401": { description: Unauthorized }
+
+  /entries/barcode/{id}:
+    get:
+      tags: [Entries]
+      summary: Get saved barcode scan entry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Barcode entry detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  entry:   { type: object }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  /entries/{id}:
+    get:
+      tags: [Entries]
+      summary: Get a single entry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [meal, food, medicine, glucose] }
+          description: Optional — auto-detected when omitted
+      responses:
+        "200":
+          description: Entry detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  type:     { type: string }
+                  foods:    { type: array, items: { type: object } }
+                  medicine: { type: object }
+                  glucose:  { type: object }
+                  entry:    { type: object }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  /entries/barcode:
+    post:
+      tags: [Entries]
+      summary: Save scanned barcode entry (food or medicine)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [barcode, productName, category, eatenAt]
+              properties:
+                barcode:     { type: string }
+                productName: { type: string }
+                brand:       { type: string }
+                category:    { type: string, enum: [food, medicine] }
+                eatenAt:     { type: string, format: date-time }
+                foodType:    { type: string }
+                servingSize: { type: string }
+                servings:    { type: number }
+                nutrition:
+                  type: object
+                  properties:
+                    calories: { type: number }
+                    carbs:    { type: number }
+                    fat:      { type: number }
+                    protein:  { type: number }
+                    sugar:    { type: number }
+                    fiber:    { type: number }
+                medicine:
+                  type: object
+                  properties:
+                    medicineName: { type: string }
+                    dosage:       { type: number }
+                    dosageUnit:   { type: string }
+                    form:         { type: string }
+                    quantity:     { type: number }
+      responses:
+        "201":
+          description: Entry saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  message:  { type: string }
+                  meal:     { type: object }
+                  medicine: { type: object }
         "401": { description: Unauthorized }
