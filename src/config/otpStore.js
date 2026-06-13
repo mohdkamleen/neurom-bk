@@ -52,4 +52,21 @@ const verifyResetOTP = (email, otp) => {
   return { success: true };
 };
 
-module.exports = { setOTP, verifyOTP, setResetOTP, verifyResetOTP };
+const checkResetOTP = (email, otp) => {
+  const record = resetOtpStore[email];
+
+  if (!record) return { success: false, message: "No reset code found" };
+
+  if (Date.now() > record.expires) {
+    delete resetOtpStore[email];
+    return { success: false, message: "Reset code expired" };
+  }
+
+  if (String(record.otp) !== String(otp)) {
+    return { success: false, message: "Invalid reset code" };
+  }
+
+  return { success: true };
+};
+
+module.exports = { setOTP, verifyOTP, setResetOTP, verifyResetOTP, checkResetOTP };

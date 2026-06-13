@@ -9,6 +9,7 @@ const {
   googleAuth,
   appleAuth,
   forgotPassword,
+  verifyResetPasswordOtp,
   resetPassword,
   getProfile,
   updateProfile,
@@ -23,6 +24,7 @@ router.post("/verifyOtp", verifyOtp);
 router.post("/google", googleAuth);
 router.post("/apple", appleAuth);
 router.post("/forgot-password", forgotPassword);
+router.post("/verify-reset-otp", verifyResetPasswordOtp);
 router.post("/reset-password", resetPassword);
 router.get("/profile", authMiddleware, getProfile);
 router.post("/profile", authMiddleware, getProfile);

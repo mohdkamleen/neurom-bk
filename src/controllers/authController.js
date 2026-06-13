@@ -1,6 +1,6 @@
 const { sendMail } = require("../utils/sendMail");
 const jwt = require("jsonwebtoken");
-const { setOTP, verifyOTP, setResetOTP, verifyResetOTP } = require("../config/otpStore");
+const { setOTP, verifyOTP, setResetOTP, verifyResetOTP, checkResetOTP } = require("../config/otpStore");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const { validatePassword } = require("../utils/passwordPolicy");
@@ -411,6 +411,29 @@ exports.forgotPassword = async (req, res) => {
       success: true,
       message: "If an account exists for this email, a reset code was sent.",
     });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.verifyResetPasswordOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "email and otp are required",
+      });
+    }
+
+    const emailNorm = String(email).trim().toLowerCase();
+    const v = checkResetOTP(emailNorm, otp);
+    if (!v.success) {
+      return res.status(400).json({ success: false, message: v.message });
+    }
+
+    return res.json({ success: true, message: "Reset code verified" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ success: false, message: "Server error" });
