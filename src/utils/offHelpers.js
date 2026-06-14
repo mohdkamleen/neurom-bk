@@ -4,6 +4,19 @@
  */
 
 const OFF_BASE = "https://world.openfoodfacts.org";
+const OFF_USER_AGENT = "NeuroM/1.0 (diabetes-management-app)";
+
+async function offFetch(url) {
+  const upstream = await fetch(url, {
+    headers: { "User-Agent": OFF_USER_AGENT },
+  });
+  if (!upstream.ok) {
+    const err = new Error("upstream");
+    err.status = upstream.status;
+    throw err;
+  }
+  return upstream.json();
+}
 
 const pickNutrimentsSummary = (nutriments) => {
   if (!nutriments || typeof nutriments !== "object") return null;
@@ -85,15 +98,20 @@ function parseServingGrams(product = {}) {
 
 async function fetchOffProduct(code) {
   const url = `${OFF_BASE}/api/v2/product/${encodeURIComponent(code)}.json`;
-  const upstream = await fetch(url);
-  if (!upstream.ok) {
-    const err = new Error("upstream");
-    err.status = upstream.status;
-    throw err;
-  }
-  const data = await upstream.json();
+  const data = await offFetch(url);
   if (data.status === 0 || !data.product) return null;
   return data.product;
+}
+
+async function searchOffProducts(query, { page = 1, pageSize = 20 } = {}) {
+  const params = new URLSearchParams({
+    search_terms: query,
+    json: "1",
+    page_size: String(pageSize),
+    page: String(page),
+  });
+  const url = `${OFF_BASE}/cgi/search.pl?${params.toString()}`;
+  return offFetch(url);
 }
 
 function offProductToScanResult(product) {
@@ -127,5 +145,6 @@ module.exports = {
   nutritionToFrontend,
   parseServingGrams,
   fetchOffProduct,
+  searchOffProducts,
   offProductToScanResult,
 };
