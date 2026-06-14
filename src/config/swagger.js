@@ -9,9 +9,19 @@ const options = {
       description:
         "REST API for the NeuroM diabetes management mobile application. All protected routes require a Bearer JWT token obtained from `/auth/login` or `/auth/verifyOtp`.",
     },
+    tags: [
+      { name: "Auth", description: "Authentication and profile" },
+      { name: "Onboarding", description: "User onboarding" },
+      { name: "Dashboard", description: "Home dashboard" },
+      { name: "Glucose", description: "Glucose readings" },
+      { name: "Meals", description: "Meal logging" },
+      { name: "Medicine", description: "Medicine logging" },
+      { name: "Entries", description: "Manual and barcode entries" },
+      { name: "Food", description: "Food lookup — MongoDB cache, Open Food Facts, USDA" },
+    ],
     servers: [
       { url: "/api", description: "Prefixed base path" },
-      { url: "/",    description: "Root base path" },
+      { url: "/", description: "Root base path" },
     ],
     components: {
       securitySchemes: {
@@ -213,12 +223,17 @@ const options = {
           },
         },
         FoodDetailResponse: {
-          type: "object",
-          properties: {
-            success:   { type: "boolean", example: true },
-            fromCache: { type: "boolean" },
-          },
-          allOf: [{ $ref: "#/components/schemas/FoodItem" }],
+          allOf: [
+            { $ref: "#/components/schemas/FoodItem" },
+            {
+              type: "object",
+              required: ["success"],
+              properties: {
+                success:   { type: "boolean", example: true },
+                fromCache: { type: "boolean", example: false },
+              },
+            },
+          ],
         },
       },
     },

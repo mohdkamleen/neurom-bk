@@ -696,7 +696,7 @@ paths:
         - in: query
           name: q
           required: true
-          schema: { type: string, example: apple }
+          schema: { type: string, example: "apple" }
           description: Food name search term
         - in: query
           name: source
@@ -890,25 +890,3 @@ paths:
         "400": { description: Missing code or grams }
         "404": { description: Product not found }
         "502": { description: Upstream service unavailable }
-
-  /entries/barcode/{id}:
-    get:
-      tags: [Entries]
-      summary: Get saved barcode entry by ID
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          description: Saved scanner entry
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: { type: boolean }
-                  entry:   { type: object }
-        "404": { description: Entry not found }
-        "401": { description: Unauthorized }
