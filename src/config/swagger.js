@@ -165,6 +165,61 @@ const options = {
             createdAt: { type: "string", format: "date-time" },
           },
         },
+        // ── Food lookup (cache + Open Food Facts + USDA) ───────────────────
+        FoodNutrition: {
+          type: "object",
+          properties: {
+            calories: { type: "number", example: 65 },
+            carbs:    { type: "number", example: 15.7 },
+            fat:      { type: "number", example: 0.16 },
+            protein:  { type: "number", example: 0.15 },
+            sugar:    { type: "number", example: 13.3 },
+            fiber:    { type: "number", example: 2.08 },
+          },
+        },
+        FoodItem: {
+          type: "object",
+          properties: {
+            source:       { type: "string", enum: ["openfoodfacts", "usda"], example: "usda" },
+            barcode:      { type: "string", nullable: true, example: "3017620422003" },
+            fdcId:        { type: "string", nullable: true, example: "1750340" },
+            productName:  { type: "string", example: "Apples, fuji, with skin, raw" },
+            brand:        { type: "string", nullable: true },
+            imageUrl:     { type: "string", nullable: true },
+            servingSize:  { type: "string", example: "100" },
+            servings:     { type: "number", example: 1 },
+            nutrition:    { $ref: "#/components/schemas/FoodNutrition" },
+            foodCategory: { type: "string", nullable: true },
+            dataType:     { type: "string", nullable: true },
+          },
+        },
+        FoodSearchResponse: {
+          type: "object",
+          properties: {
+            success:   { type: "boolean", example: true },
+            query:     { type: "string", example: "apple" },
+            page:      { type: "integer", example: 1 },
+            pageSize:  { type: "integer", example: 20 },
+            count:     { type: "integer", example: 42 },
+            fromCache: { type: "boolean", description: "true when served from neurom_food MongoDB cache" },
+            foods:     { type: "array", items: { $ref: "#/components/schemas/FoodItem" } },
+            sources: {
+              type: "object",
+              properties: {
+                usda:            { type: "integer" },
+                openfoodfacts:   { type: "integer" },
+              },
+            },
+          },
+        },
+        FoodDetailResponse: {
+          type: "object",
+          properties: {
+            success:   { type: "boolean", example: true },
+            fromCache: { type: "boolean" },
+          },
+          allOf: [{ $ref: "#/components/schemas/FoodItem" }],
+        },
       },
     },
     // Default security applied globally (overridden per-route where not needed)

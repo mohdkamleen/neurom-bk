@@ -680,3 +680,235 @@ paths:
                   meal:     { type: object }
                   medicine: { type: object }
         "401": { description: Unauthorized }
+
+  # ── Food lookup (no auth — cache-first, then Open Food Facts / USDA) ─────────
+
+  /food/search:
+    get:
+      tags: [Food]
+      summary: Search foods by name
+      description: |
+        Cache-first search against `neurom_food.food_by_name`.
+        On cache miss, fetches from USDA (generic) and/or Open Food Facts (packaged)
+        and stores results in MongoDB.
+      security: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, example: apple }
+          description: Food name search term
+        - in: query
+          name: source
+          schema: { type: string, enum: [all, off, usda], default: all }
+          description: |
+            `all` — USDA generic + OFF packaged (default)
+            `off` — packaged products only (Open Food Facts)
+            `usda` — generic / non-packaged only (USDA FoodData Central)
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Matching foods with nutrition
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "400": { description: Missing or invalid query }
+        "502": { description: Upstream food data service unavailable }
+
+  /food/generic/search:
+    get:
+      tags: [Food]
+      summary: Search generic / non-packaged foods (USDA only)
+      description: Shortcut for `GET /food/search?source=usda`. Same cache-first behaviour.
+      security: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, example: "apple raw" }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: USDA generic food results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "400": { description: Missing query }
+        "502": { description: USDA service unavailable }
+
+  /food/barcode/{code}:
+    get:
+      tags: [Food]
+      summary: Barcode scan lookup (packaged food)
+      description: |
+        Cache-first lookup in `neurom_food.food_by_barcode`.
+        On miss, fetches from Open Food Facts and caches the result.
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+          description: Product barcode / Open Food Facts code
+      responses:
+        "200":
+          description: Product details ready for POST /entries/barcode
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/details/{code}:
+    get:
+      tags: [Food]
+      summary: Packaged food details by barcode
+      description: Same handler as `GET /food/barcode/{code}`.
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/generic/details/{fdcId}:
+    get:
+      tags: [Food]
+      summary: Generic food details by USDA FDC ID
+      description: |
+        Cache-first lookup in `neurom_food.food_by_name` by `fdcId`.
+        On miss, fetches from USDA FoodData Central and caches.
+      security: []
+      parameters:
+        - in: path
+          name: fdcId
+          required: true
+          schema: { type: string, example: "1750340" }
+          description: USDA FoodData Central ID
+      responses:
+        "200":
+          description: Generic food details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Food not found }
+        "502": { description: USDA service unavailable }
+
+  /food/product/{code}:
+    get:
+      tags: [Food]
+      summary: Raw Open Food Facts product payload
+      description: Returns the full upstream OFF product object (legacy / debugging).
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+      responses:
+        "200":
+          description: Raw OFF product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  fromCache: { type: boolean }
+                  product:   { type: object }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/nutrients-for-serving:
+    get:
+      tags: [Food]
+      summary: Scale nutrients to a custom serving (grams)
+      description: |
+        Cache-first. Supports Open Food Facts barcodes (`source=off`) and
+        USDA FDC IDs (`source=usda`).
+      security: []
+      parameters:
+        - in: query
+          name: source
+          schema: { type: string, enum: [off, usda], default: off }
+        - in: query
+          name: code
+          schema: { type: string }
+          description: Barcode when source=off
+        - in: query
+          name: fdcId
+          schema: { type: string }
+          description: USDA FDC ID when source=usda (alias for code)
+        - in: query
+          name: grams
+          required: true
+          schema: { type: number, example: 150 }
+          description: Serving weight in grams
+      responses:
+        "200":
+          description: Scaled per-serving nutrients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:       { type: boolean }
+                  fromCache:     { type: boolean }
+                  source:        { type: string, enum: [openfoodfacts, usda] }
+                  code:          { type: string, nullable: true }
+                  fdcId:         { type: string, nullable: true }
+                  product_name:  { type: string }
+                  serving_grams: { type: number }
+                  perServing:
+                    type: object
+                    properties:
+                      grams:     { type: number }
+                      calories:  { type: number }
+                      carbsG:    { type: number }
+                      fatG:      { type: number }
+                      proteinG:  { type: number }
+                      sugarG:    { type: number }
+                      fiberG:    { type: number }
+        "400": { description: Missing code or grams }
+        "404": { description: Product not found }
+        "502": { description: Upstream service unavailable }
+
+  /entries/barcode/{id}:
+    get:
+      tags: [Entries]
+      summary: Get saved barcode entry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Saved scanner entry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  entry:   { type: object }
+        "404": { description: Entry not found }
+        "401": { description: Unauthorized }
