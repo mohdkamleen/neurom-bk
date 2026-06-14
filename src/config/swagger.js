@@ -18,6 +18,7 @@ const options = {
       { name: "Medicine", description: "Medicine logging" },
       { name: "Entries", description: "Manual and barcode entries" },
       { name: "Food", description: "Food lookup — MongoDB cache, Open Food Facts, USDA" },
+      { name: "Sharing", description: "Health data sharing and access management" },
     ],
     servers: [
       { url: "/api", description: "Prefixed base path" },
@@ -234,6 +235,58 @@ const options = {
               },
             },
           ],
+        },
+        // ── Sharing ────────────────────────────────────────────────────────
+        SharePermission: {
+          type: "string",
+          enum: ["view_only", "view_edit"],
+          example: "view_only",
+        },
+        SharedUser: {
+          type: "object",
+          properties: {
+            id:         { type: "string", description: "Data share record id" },
+            userId:     { type: "string", description: "Peer user id" },
+            name:       { type: "string", example: "Jane Doe" },
+            email:      { type: "string", format: "email", example: "jane@example.com" },
+            phone:      { type: "string", example: "9876543210" },
+            avatar:     { type: "string", nullable: true },
+            permission: { $ref: "#/components/schemas/SharePermission" },
+            ownerId:    { type: "string", description: "Present on sharedWithMe entries only" },
+          },
+        },
+        ManageUsersResponse: {
+          type: "object",
+          properties: {
+            success:       { type: "boolean", example: true },
+            sharedByMe:    { type: "array", items: { $ref: "#/components/schemas/SharedUser" } },
+            sharedWithMe:  { type: "array", items: { $ref: "#/components/schemas/SharedUser" } },
+          },
+        },
+        GrantAccessRequest: {
+          type: "object",
+          required: ["permission"],
+          properties: {
+            email:       { type: "string", format: "email", description: "Receiver email (required if phone omitted)" },
+            phone:       { type: "string", description: "Receiver phone (required if email omitted)" },
+            countryCode: { type: "string", example: "+91" },
+            permission:  { $ref: "#/components/schemas/SharePermission" },
+          },
+        },
+        RequestAccessRequest: {
+          type: "object",
+          properties: {
+            email:       { type: "string", format: "email", description: "Owner email (required if phone omitted)" },
+            phone:       { type: "string", description: "Owner phone (required if email omitted)" },
+            countryCode: { type: "string", example: "+91" },
+          },
+        },
+        UpdatePermissionRequest: {
+          type: "object",
+          required: ["permission"],
+          properties: {
+            permission: { $ref: "#/components/schemas/SharePermission" },
+          },
         },
       },
     },

@@ -1,0 +1,197 @@
+paths:
+
+  # ── Sharing ──────────────────────────────────────────────────────────────────
+
+  /sharing/users:
+    get:
+      tags: [Sharing]
+      summary: List shared users (Manage Users screen)
+      description: Returns active shares for both "Shared by me" and "Shared with me" tabs.
+      responses:
+        "200":
+          description: Shared user lists
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManageUsersResponse" }
+        "401": { description: Missing or invalid JWT }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /sharing/grant:
+    post:
+      tags: [Sharing]
+      summary: Grant access to your health data
+      description: Share data with a registered user by email or phone. Updates permission if access already exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GrantAccessRequest" }
+            examples:
+              byEmail:
+                summary: Grant by email
+                value:
+                  email: caregiver@example.com
+                  permission: view_only
+              byPhone:
+                summary: Grant by phone
+                value:
+                  phone: "9876543210"
+                  countryCode: "+91"
+                  permission: view_edit
+      responses:
+        "201":
+          description: Access granted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "200":
+          description: Existing access updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400":
+          description: Invalid input or self-share attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401": { description: Missing or invalid JWT }
+        "404":
+          description: No registered user found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /sharing/request-access:
+    post:
+      tags: [Sharing]
+      summary: Request access to another user's health data
+      description: Sends a pending access request to a registered data owner by email or phone.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RequestAccessRequest" }
+            examples:
+              byEmail:
+                summary: Request by owner email
+                value:
+                  email: owner@example.com
+              byPhone:
+                summary: Request by owner phone
+                value:
+                  phone: "9876543210"
+                  countryCode: "+91"
+      responses:
+        "201":
+          description: Access request sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "200":
+          description: Request already exists or access already granted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400":
+          description: Invalid input or self-request attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401": { description: Missing or invalid JWT }
+        "404":
+          description: No registered user found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /sharing/{id}/permission:
+    patch:
+      tags: [Sharing]
+      summary: Update permission for an existing share
+      description: Only the data owner can change grantee permission.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Data share record id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePermissionRequest" }
+      responses:
+        "200":
+          description: Permission updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400":
+          description: Invalid permission
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401": { description: Missing or invalid JWT }
+        "403":
+          description: Only the data owner can change permissions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Share not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /sharing/{id}:
+    delete:
+      tags: [Sharing]
+      summary: Revoke shared access
+      description: Only the data owner can revoke a grant.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: Data share record id
+      responses:
+        "200":
+          description: Access revoked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "401": { description: Missing or invalid JWT }
+        "403":
+          description: Only the data owner can revoke access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Share not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }

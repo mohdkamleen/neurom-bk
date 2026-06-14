@@ -14,6 +14,7 @@ router.use("/dashboard", require("./dashboardRoutes"));
 router.use("/predictions", require("./predictionRoutes"));
 router.use("/reports", require("./reportRoutes"));
 router.use("/messages", require("./messageRoutes"));
+router.use("/sharing", require("./sharingRoutes"));
 router.use("/admin", require("./adminRoutes"));
 
 module.exports = router;
