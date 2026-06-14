@@ -5,6 +5,7 @@ const sharing = require("../controllers/sharingController");
 const router = express.Router();
 
 router.get("/users", auth, sharing.listUsers);
+router.get("/dashboard", auth, sharing.dashboard);
 router.post("/grant", auth, sharing.grantAccess);
 router.post("/request-access", auth, sharing.requestAccess);
 router.patch("/:id/permission", auth, sharing.updatePermission);

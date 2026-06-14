@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 const DataShare = require("../models/DataShare");
 const User = require("../models/User");
+const {
+  buildHomeDashboard,
+  splitFirst,
+} = require("../services/dashboardService");
 
 const VALID_PERMISSIONS = new Set(["view_only", "view_edit"]);
 
@@ -298,6 +302,65 @@ exports.revokeAccess = async (req, res) => {
     return res.json({
       success: true,
       message: "Access revoked",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.dashboard = async (req, res) => {
+  try {
+    const email = normalizeEmail(req.query.email);
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Shared user email is required",
+      });
+    }
+
+    const owner = await User.findOne({ email }).select("-password").lean();
+    if (!owner) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const share = await DataShare.findOne({
+      owner: owner._id,
+      grantee: req.user.id,
+      status: "active",
+    }).lean();
+
+    if (!share) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have access to this user's data",
+      });
+    }
+
+    const range = ["7d", "14d", "30d"].includes(req.query.glucoseRange)
+      ? req.query.glucoseRange
+      : "7d";
+
+    const payload = await buildHomeDashboard(owner._id, range);
+    if (!payload) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      ...payload,
+      sharedUser: {
+        email: owner.email,
+        name: owner.name,
+        firstName: splitFirst(owner.name),
+        permission: share.permission,
+      },
     });
   } catch (err) {
     console.error(err);

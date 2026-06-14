@@ -20,6 +20,63 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
+  /sharing/dashboard:
+    get:
+      tags: [Sharing]
+      summary: Get shared user dashboard
+      description: Returns the home dashboard payload for a user who has shared their data with the caller. Requires an active share where the caller is the grantee.
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email }
+          description: Email of the data owner (shared user)
+        - in: query
+          name: glucoseRange
+          schema:
+            type: string
+            enum: [7d, 14d, 30d]
+          description: Glucose history window for the series payload
+      responses:
+        "200":
+          description: Shared user dashboard payload (same shape as /dashboard/home plus sharedUser metadata)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  sharedUser:
+                    type: object
+                    properties:
+                      email: { type: string }
+                      name: { type: string }
+                      firstName: { type: string }
+                      permission:
+                        type: string
+                        enum: [view_only, view_edit]
+        "400":
+          description: Missing email
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401": { description: Missing or invalid JWT }
+        "403":
+          description: Caller does not have access to this user's data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
   /sharing/grant:
     post:
       tags: [Sharing]
