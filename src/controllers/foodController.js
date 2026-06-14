@@ -3,61 +3,13 @@
  * Docs: https://openfoodfacts.github.io/openfoodfacts-server/api/
  */
 
-const OFF_BASE = "https://world.openfoodfacts.org";
-
-const pickNutrimentsSummary = (nutriments) => {
-  if (!nutriments || typeof nutriments !== "object") return null;
-  const keys = [
-    "energy-kcal_100g",
-    "energy_kcal_100g",
-    "fat_100g",
-    "saturated-fat_100g",
-    "carbohydrates_100g",
-    "sugars_100g",
-    "fiber_100g",
-    "proteins_100g",
-    "salt_100g",
-    "sodium_100g",
-  ];
-  const out = {};
-  for (const k of keys) {
-    if (nutriments[k] != null) out[k] = nutriments[k];
-  }
-  return Object.keys(out).length ? out : nutriments;
-};
-
-async function fetchOffProduct(code) {
-  const url = `${OFF_BASE}/api/v2/product/${encodeURIComponent(code)}.json`;
-  const upstream = await fetch(url);
-  if (!upstream.ok) {
-    const err = new Error("upstream");
-    err.status = upstream.status;
-    throw err;
-  }
-  const data = await upstream.json();
-  if (data.status === 0 || !data.product) return null;
-  return data.product;
-}
-
-function nutrientsForGrams(nutriments, grams) {
-  const g = Number(grams);
-  if (!(g > 0) || !nutriments) return null;
-  const scale = (k) => {
-    const v = nutriments[k];
-    if (v == null || Number.isNaN(Number(v))) return 0;
-    return (Number(v) * g) / 100;
-  };
-  return {
-    grams: g,
-    calories: Math.round(scale("energy-kcal_100g") || scale("energy_kcal_100g") || 0),
-    carbsG: Math.round(scale("carbohydrates_100g") * 100) / 100,
-    fatG: Math.round(scale("fat_100g") * 100) / 100,
-    proteinG: Math.round(scale("proteins_100g") * 100) / 100,
-    sugarG: Math.round(scale("sugars_100g") * 100) / 100,
-    fiberG: Math.round(scale("fiber_100g") * 100) / 100,
-    saltG: Math.round(scale("salt_100g") * 1000) / 1000,
-  };
-}
+const {
+  OFF_BASE,
+  pickNutrimentsSummary,
+  nutrientsForGrams,
+  fetchOffProduct,
+  offProductToScanResult,
+} = require("../utils/offHelpers");
 
 exports.searchFoods = async (req, res) => {
   const q = String(req.query.q || "").trim();
@@ -108,6 +60,47 @@ exports.searchFoods = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to search foods",
+      error: err.message,
+    });
+  }
+};
+
+/** Barcode scan lookup — returns product details ready for POST /entries/barcode. */
+exports.scanBarcode = async (req, res) => {
+  const barcode = String(req.params.code || "").trim();
+  if (!barcode) {
+    return res.status(400).json({
+      success: false,
+      message: "Barcode is required",
+    });
+  }
+
+  try {
+    const product = await fetchOffProduct(barcode);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found for this barcode",
+        barcode,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      ...offProductToScanResult(product),
+    });
+  } catch (err) {
+    console.error(err);
+    if (err.status) {
+      return res.status(502).json({
+        success: false,
+        message: "Food data service unavailable",
+        status: err.status,
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Failed to look up barcode",
       error: err.message,
     });
   }
