@@ -18,6 +18,7 @@ const {
   medicineLogToBarcodeEntry,
   parseDateRange,
 } = require("../utils/entryHelpers");
+const { resolveSharedAccess } = require("../utils/sharedAccess");
 
 async function getGlucoseTargets(userId) {
   const user = await User.findById(userId)
@@ -248,7 +249,18 @@ exports.barcode = async (req, res) => {
 exports.listManual = async (req, res) => {
   try {
     const { from, to } = parseDateRange(req.query);
-    const userId = req.user.id;
+    let userId = req.user.id;
+
+    if (req.query.email) {
+      const access = await resolveSharedAccess(req.user.id, req.query.email);
+      if (!access.ok) {
+        return res.status(access.status).json({
+          success: false,
+          message: access.message,
+        });
+      }
+      userId = access.ownerId;
+    }
 
     const [meals, medicines, readings] = await Promise.all([
       MealLog.find({ user: userId, consumedAt: { $gte: from, $lte: to } })

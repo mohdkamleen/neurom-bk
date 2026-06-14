@@ -5,6 +5,7 @@ const {
   buildHomeDashboard,
   splitFirst,
 } = require("../services/dashboardService");
+const { normalizeEmail, resolveSharedAccess } = require("../utils/sharedAccess");
 
 const VALID_PERMISSIONS = new Set(["view_only", "view_edit"]);
 
@@ -311,32 +312,11 @@ exports.revokeAccess = async (req, res) => {
 
 exports.dashboard = async (req, res) => {
   try {
-    const email = normalizeEmail(req.query.email);
-    if (!email) {
-      return res.status(400).json({
+    const access = await resolveSharedAccess(req.user.id, req.query.email);
+    if (!access.ok) {
+      return res.status(access.status).json({
         success: false,
-        message: "Shared user email is required",
-      });
-    }
-
-    const owner = await User.findOne({ email }).select("-password").lean();
-    if (!owner) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    const share = await DataShare.findOne({
-      owner: owner._id,
-      grantee: req.user.id,
-      status: "active",
-    }).lean();
-
-    if (!share) {
-      return res.status(403).json({
-        success: false,
-        message: "You do not have access to this user's data",
+        message: access.message,
       });
     }
 
@@ -344,7 +324,7 @@ exports.dashboard = async (req, res) => {
       ? req.query.glucoseRange
       : "7d";
 
-    const payload = await buildHomeDashboard(owner._id, range);
+    const payload = await buildHomeDashboard(access.ownerId, range);
     if (!payload) {
       return res.status(404).json({
         success: false,
@@ -356,10 +336,10 @@ exports.dashboard = async (req, res) => {
       success: true,
       ...payload,
       sharedUser: {
-        email: owner.email,
-        name: owner.name,
-        firstName: splitFirst(owner.name),
-        permission: share.permission,
+        email: access.owner.email,
+        name: access.owner.name,
+        firstName: splitFirst(access.owner.name),
+        permission: access.permission,
       },
     });
   } catch (err) {
