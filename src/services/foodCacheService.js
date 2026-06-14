@@ -71,37 +71,41 @@ function nameLookupFilter(food) {
 async function cacheFood(food, query = "") {
   if (!isFoodDbReady() || !food?.productName) return;
 
-  const doc = toCacheDocument(food, query);
-  const FoodByBarcode = getFoodByBarcodeModel();
-  const FoodByName = getFoodByNameModel();
-  const nameFilter = nameLookupFilter(food);
+  try {
+    const doc = toCacheDocument(food, query);
+    const FoodByBarcode = getFoodByBarcodeModel();
+    const FoodByName = getFoodByNameModel();
+    const nameFilter = nameLookupFilter(food);
 
-  const existing = await FoodByName.findOne(nameFilter).select("searchTerms").lean();
-  if (existing?.searchTerms?.length) {
-    doc.searchTerms = [...new Set([...existing.searchTerms, ...doc.searchTerms])];
-  }
+    const existing = await FoodByName.findOne(nameFilter).select("searchTerms").lean();
+    if (existing?.searchTerms?.length) {
+      doc.searchTerms = [...new Set([...existing.searchTerms, ...doc.searchTerms])];
+    }
 
-  const ops = [];
+    const ops = [];
 
-  if (food.barcode) {
+    if (food.barcode) {
+      ops.push(
+        FoodByBarcode.findOneAndUpdate({ barcode: food.barcode }, doc, {
+          upsert: true,
+          new: true,
+          setDefaultsOnInsert: true,
+        })
+      );
+    }
+
     ops.push(
-      FoodByBarcode.findOneAndUpdate({ barcode: food.barcode }, doc, {
+      FoodByName.findOneAndUpdate(nameFilter, doc, {
         upsert: true,
         new: true,
         setDefaultsOnInsert: true,
       })
     );
+
+    await Promise.all(ops);
+  } catch (err) {
+    console.warn("Food cache write failed:", err.message);
   }
-
-  ops.push(
-    FoodByName.findOneAndUpdate(nameFilter, doc, {
-      upsert: true,
-      new: true,
-      setDefaultsOnInsert: true,
-    })
-  );
-
-  await Promise.all(ops);
 }
 
 async function cacheFoods(foods = [], query = "") {

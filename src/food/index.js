@@ -38,7 +38,7 @@ function initFoodDatabase() {
       },
       { timestamps: true }
     );
-    nameSchema.index({ productName: "text", searchTerms: 1 });
+    nameSchema.index({ productName: "text" });
     nameSchema.index({ searchTerms: 1 });
     nameSchema.index({ fdcId: 1 }, { unique: true, sparse: true });
     nameSchema.index({ barcode: 1 }, { sparse: true });
@@ -46,8 +46,17 @@ function initFoodDatabase() {
     FoodByName = foodDb.model("FoodByName", nameSchema, "food_by_name");
   }
 
+  syncFoodIndexes().catch((err) => {
+    console.warn("Food cache index sync:", err.message);
+  });
+
   console.log(`Food cache DB ready: ${dbName}`);
   return true;
+}
+
+async function syncFoodIndexes() {
+  if (!FoodByBarcode || !FoodByName) return;
+  await Promise.all([FoodByBarcode.syncIndexes(), FoodByName.syncIndexes()]);
 }
 
 module.exports = {
