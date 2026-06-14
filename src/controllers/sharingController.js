@@ -9,10 +9,6 @@ const { normalizeEmail, resolveSharedAccess } = require("../utils/sharedAccess")
 
 const VALID_PERMISSIONS = new Set(["view_only", "view_edit"]);
 
-function normalizeEmail(email) {
-  return email != null ? String(email).trim().toLowerCase() : "";
-}
-
 function normalizePhone(phone, countryCode) {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) {
