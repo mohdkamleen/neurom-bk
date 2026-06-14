@@ -259,7 +259,7 @@ exports.listManual = async (req, res) => {
           message: access.message,
         });
       }
-      userId = access.ownerId;
+      userId = new mongoose.Types.ObjectId(String(access.ownerId));
     }
 
     const [meals, medicines, readings] = await Promise.all([

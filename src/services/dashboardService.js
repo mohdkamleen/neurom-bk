@@ -2,7 +2,7 @@ const GlucoseReading = require("../models/GlucoseReading");
 const User = require("../models/User");
 const MealLog = require("../models/MealLog");
 const mongoose = require("mongoose");
-const { glucoseHistoryWindow } = require("../utils/dateRange");
+const { glucoseHistoryWindow, localDateYmd } = require("../utils/dateRange");
 const { sumMealsForDay } = require("../utils/mealAggregate");
 const { glucoseDisplayStatus } = require("../utils/glucoseDisplay");
 const { buildDietSegments } = require("../utils/dietSegments");
@@ -145,7 +145,7 @@ async function buildHomeDashboard(userId, glucoseRange = "7d") {
     ? statusForValue(latest.valueMgDl, low, high)
     : null;
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateYmd();
   const diet = await sumMealsForDay(userId, today, user.calorieGoal);
   const insights = await buildInsights(userId);
 

@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const DataShare = require("../models/DataShare");
+const mongoose = require("mongoose");
 
 function normalizeEmail(email) {
   return email != null ? String(email).trim().toLowerCase() : "";
@@ -22,7 +23,7 @@ async function resolveSharedAccess(granteeId, ownerEmail) {
 
   const share = await DataShare.findOne({
     owner: owner._id,
-    grantee: granteeId,
+    grantee: new mongoose.Types.ObjectId(String(granteeId)),
     status: "active",
   }).lean();
 

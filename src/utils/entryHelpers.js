@@ -197,14 +197,22 @@ function parseDateRange(query = {}) {
   let from = query.from ? new Date(query.from) : null;
   let to = query.to ? new Date(query.to) : null;
 
-  if (query.date) {
-    const day = new Date(query.date);
-    if (!Number.isNaN(day.getTime())) {
-      from = new Date(day);
-      from.setHours(0, 0, 0, 0);
-      to = new Date(day);
-      to.setHours(23, 59, 59, 999);
-    }
+  if (
+    from &&
+    to &&
+    !Number.isNaN(from.getTime()) &&
+    !Number.isNaN(to.getTime())
+  ) {
+    return { from, to };
+  }
+
+  const dateYmd = query.date ? String(query.date).trim() : "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) {
+    return {
+      from: new Date(`${dateYmd}T00:00:00.000Z`),
+      to: new Date(`${dateYmd}T23:59:59.999Z`),
+    };
   }
 
   if (!from || Number.isNaN(from.getTime())) {
