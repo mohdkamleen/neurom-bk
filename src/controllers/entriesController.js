@@ -18,7 +18,7 @@ const {
   medicineLogToBarcodeEntry,
   parseDateRange,
 } = require("../utils/entryHelpers");
-const { resolveSharedAccess } = require("../utils/sharedAccess");
+const { resolveSharedAccess, resolveSharedEditAccess, normalizeEmail } = require("../utils/sharedAccess");
 
 async function getGlucoseTargets(userId) {
   const user = await User.findById(userId)
@@ -40,6 +40,29 @@ function serializeReading(reading, low, high) {
 
 function isValidId(id) {
   return mongoose.Types.ObjectId.isValid(id);
+}
+
+async function resolveWritableUserId(req) {
+  const email = normalizeEmail(
+    req.body?.email || req.body?.sharedUserEmail || req.body?.ownerEmail,
+  );
+  if (!email) {
+    return { ok: true, userId: req.user.id };
+  }
+
+  const access = await resolveSharedEditAccess(req.user.id, email);
+  if (!access.ok) {
+    return {
+      ok: false,
+      status: access.status,
+      message: access.message,
+    };
+  }
+
+  return {
+    ok: true,
+    userId: new mongoose.Types.ObjectId(String(access.ownerId)),
+  };
 }
 
 /**
@@ -78,12 +101,21 @@ exports.manual = async (req, res) => {
       });
     }
 
+    const resolved = await resolveWritableUserId(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({
+        success: false,
+        message: resolved.message,
+      });
+    }
+    const targetUserId = resolved.userId;
+
     const result = { success: true, message: "Saved successfully" };
     const meals = [];
     const savedMedicines = [];
 
     if (hasFoods) {
-      const mealDocs = groupFoodsIntoMeals(foods, req.user.id);
+      const mealDocs = groupFoodsIntoMeals(foods, targetUserId);
       for (const doc of mealDocs) {
         if (doc.items.length === 0) continue;
         meals.push(await MealLog.create(doc));
@@ -94,7 +126,7 @@ exports.manual = async (req, res) => {
         legacyPortion != null ? String(legacyPortion).trim() : "";
       meals.push(
         await MealLog.create({
-          user: req.user.id,
+          user: targetUserId,
           mealType: "Other",
           consumedAt: at,
           items: [
@@ -125,7 +157,7 @@ exports.manual = async (req, res) => {
 
       savedMedicines.push(
         await MedicineLog.create({
-          user: req.user.id,
+          user: targetUserId,
           name: String(name).trim(),
           dosageValue: Number.isFinite(dosageValue) ? dosageValue : undefined,
           dosageUnit: med.dosageUnit || "mg",
@@ -154,10 +186,10 @@ exports.manual = async (req, res) => {
 
       const measuredAt =
         parseTimestamp(glucoseBlock.measuredAt || legacyAt) || new Date();
-      const { low, high } = await getGlucoseTargets(req.user.id);
+      const { low, high } = await getGlucoseTargets(targetUserId);
 
       const reading = await GlucoseReading.create({
-        user: req.user.id,
+        user: targetUserId,
         valueMgDl: v,
         measuredAt,
         notes: glucoseBlock.notes ?? body.notes,
@@ -192,12 +224,21 @@ exports.barcode = async (req, res) => {
       });
     }
 
+    const resolved = await resolveWritableUserId(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({
+        success: false,
+        message: resolved.message,
+      });
+    }
+    const targetUserId = resolved.userId;
+
     const result = { success: true, message: "Saved successfully" };
 
     if (category === "medicine") {
       const med = body.medicine || {};
       const medicine = await MedicineLog.create({
-        user: req.user.id,
+        user: targetUserId,
         name: String(med.medicineName || productName).trim(),
         dosageValue:
           med.dosage != null ? Number(med.dosage) : undefined,
@@ -227,7 +268,7 @@ exports.barcode = async (req, res) => {
     );
 
     const meal = await MealLog.create({
-      user: req.user.id,
+      user: targetUserId,
       mealType,
       consumedAt: eatenAt,
       items: [item],

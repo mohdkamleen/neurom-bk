@@ -43,7 +43,25 @@ async function resolveSharedAccess(granteeId, ownerEmail) {
   };
 }
 
+async function resolveSharedEditAccess(granteeId, ownerEmail) {
+  const access = await resolveSharedAccess(granteeId, ownerEmail);
+  if (!access.ok) {
+    return access;
+  }
+
+  if (access.permission !== "view_edit") {
+    return {
+      ok: false,
+      status: 403,
+      message: "You only have view access to this user's data",
+    };
+  }
+
+  return access;
+}
+
 module.exports = {
   normalizeEmail,
   resolveSharedAccess,
+  resolveSharedEditAccess,
 };
