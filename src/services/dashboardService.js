@@ -3,7 +3,7 @@ const User = require("../models/User");
 const MealLog = require("../models/MealLog");
 const mongoose = require("mongoose");
 const { glucoseHistoryWindow, localDateYmd } = require("../utils/dateRange");
-const { sumMealsForDay } = require("../utils/mealAggregate");
+const { sumMealsForDay, sumMealsForRange } = require("../utils/mealAggregate");
 const { glucoseDisplayStatus } = require("../utils/glucoseDisplay");
 const { buildDietSegments } = require("../utils/dietSegments");
 
@@ -74,22 +74,28 @@ async function buildInsights(userId) {
 
 async function glucoseCardForRange(userId, range, low, high) {
   const { from, to } = glucoseHistoryWindow(range);
-  const latest = await GlucoseReading.findOne({
+  const readings = await GlucoseReading.find({
     user: userId,
     measuredAt: { $gte: from, $lte: to },
   })
-    .sort({ measuredAt: -1 })
+    .select("valueMgDl measuredAt")
     .lean();
 
-  if (!latest) {
+  if (!readings.length) {
     return { value: null, status: "No data", unit: "mg/dl" };
   }
 
+  const avg =
+    readings.reduce((sum, reading) => sum + reading.valueMgDl, 0) /
+    readings.length;
+  const value = Math.round(avg);
+
   return {
-    value: latest.valueMgDl,
-    status: glucoseDisplayStatus(latest.valueMgDl, low, high),
+    value,
+    status: glucoseDisplayStatus(value, low, high),
     unit: "mg/dl",
-    measuredAt: latest.measuredAt,
+    measuredAt: readings[readings.length - 1].measuredAt,
+    readingCount: readings.length,
   };
 }
 
@@ -146,7 +152,7 @@ async function buildHomeDashboard(userId, glucoseRange = "7d") {
     : null;
 
   const today = localDateYmd();
-  const diet = await sumMealsForDay(userId, today, user.calorieGoal);
+  const diet = await sumMealsForRange(userId, from, to, user.calorieGoal);
   const insights = await buildInsights(userId);
 
   const [card7d, card14d, card30d, impactFoods] = await Promise.all([
@@ -187,6 +193,9 @@ async function buildHomeDashboard(userId, glucoseRange = "7d") {
       "30d": card30d,
     },
     dietChart: {
+      range,
+      from,
+      to,
       date: today,
       segments: buildDietSegments(diet),
       summary: diet,

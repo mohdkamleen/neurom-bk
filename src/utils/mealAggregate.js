@@ -68,4 +68,92 @@ async function sumMealsForDay(userId, dateYmd, calorieGoal = 2200) {
   };
 }
 
-module.exports = { sumMealsForDay };
+function aggregateMealTotals(meals, calorieGoal = 2200) {
+  const totals = {
+    calories: 0,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+    sugarG: 0,
+    fiberG: 0,
+  };
+
+  for (const m of meals) {
+    for (const it of m.items || []) {
+      const s =
+        it.servings != null && !Number.isNaN(Number(it.servings))
+          ? Number(it.servings)
+          : 1;
+      totals.calories += (Number(it.calories) || 0) * s;
+      totals.proteinG += (Number(it.proteinG) || 0) * s;
+      totals.carbsG += (Number(it.carbsG) || 0) * s;
+      totals.fatG += (Number(it.fatG) || 0) * s;
+      totals.sugarG += (Number(it.sugarG) || 0) * s;
+      totals.fiberG += (Number(it.fiberG) || 0) * s;
+    }
+  }
+
+  const calFromP = totals.proteinG * 4;
+  const calFromC = totals.carbsG * 4;
+  const calFromF = totals.fatG * 9;
+  const denom = calFromP + calFromC + calFromF || 1;
+
+  const percentages = {
+    protein: Math.round((10000 * calFromP) / denom) / 100,
+    carbs: Math.round((10000 * calFromC) / denom) / 100,
+    fat: Math.round((10000 * calFromF) / denom) / 100,
+  };
+
+  const consumed = Math.round(totals.calories);
+  const goal = Math.round(Number(calorieGoal) || 2200);
+
+  return {
+    totals: {
+      calories: consumed,
+      proteinG: Math.round(totals.proteinG * 100) / 100,
+      carbsG: Math.round(totals.carbsG * 100) / 100,
+      fatG: Math.round(totals.fatG * 100) / 100,
+      sugarG: Math.round(totals.sugarG * 100) / 100,
+      fiberG: Math.round(totals.fiberG * 100) / 100,
+    },
+    percentages,
+    calories: { consumed, goal, remaining: Math.max(0, goal - consumed) },
+    mealsCount: meals.length,
+  };
+}
+
+/**
+ * @param {string} userId
+ * @param {Date} from
+ * @param {Date} to
+ * @param {number} [calorieGoal]
+ */
+async function sumMealsForRange(userId, from, to, calorieGoal = 2200) {
+  const meals = await MealLog.find({
+    user: userId,
+    consumedAt: { $gte: from, $lte: to },
+  }).lean();
+
+  const aggregated = aggregateMealTotals(meals, calorieGoal);
+  const daySpan = Math.max(
+    1,
+    Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)),
+  );
+
+  return {
+    from,
+    to,
+    daySpan,
+    ...aggregated,
+    calories: {
+      consumed: aggregated.calories.consumed,
+      goal: aggregated.calories.goal * daySpan,
+      remaining: Math.max(
+        0,
+        aggregated.calories.goal * daySpan - aggregated.calories.consumed,
+      ),
+    },
+  };
+}
+
+module.exports = { sumMealsForDay, sumMealsForRange };
