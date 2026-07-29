@@ -1,6 +1,26 @@
 const { nutritionToFrontend, nutrientsForGrams } = require("./offHelpers");
 const { extractUsdaNutrition } = require("./usdaHelpers");
 
+/** Drop nutrients with value 0 / null / undefined from API responses. */
+function omitZeroNutrition(nutrition = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(nutrition)) {
+    if (value == null) continue;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) continue;
+    out[key] = n;
+  }
+  return out;
+}
+
+function withCleanNutrition(food) {
+  if (!food) return food;
+  return {
+    ...food,
+    nutrition: omitZeroNutrition(food.nutrition),
+  };
+}
+
 function tagOffFood(food) {
   return { source: "openfoodfacts", ...food };
 }
@@ -12,7 +32,7 @@ function buildFoodSearchResponse({ query, page, pageSize, foods, count, sources,
     page,
     pageSize,
     count: count ?? foods.length,
-    foods,
+    foods: (foods || []).map(withCleanNutrition),
     fromCache: Boolean(fromCache),
   };
 
@@ -68,6 +88,8 @@ function nutrientsForGramsFromUsda(foodNutrients, grams) {
 module.exports = {
   tagOffFood,
   buildFoodSearchResponse,
+  omitZeroNutrition,
+  withCleanNutrition,
   nutritionToFrontend,
   nutrientsForGrams,
   nutrientsForGramsFromUsda,

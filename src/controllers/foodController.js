@@ -19,6 +19,8 @@ const {
   tagOffFood,
   buildFoodSearchResponse,
   nutrientsForGramsFromUsda,
+  withCleanNutrition,
+  omitZeroNutrition,
 } = require("../utils/foodHelpers");
 const foodCache = require("../services/foodCacheService");
 
@@ -270,7 +272,7 @@ exports.getFoodDetails = async (req, res) => {
     return res.status(200).json({
       success: true,
       fromCache: false,
-      ...food,
+      ...withCleanNutrition(food),
     });
   } catch (err) {
     console.error(err);
@@ -312,7 +314,7 @@ exports.getGenericFoodDetails = async (req, res) => {
     return res.status(200).json({
       success: true,
       fromCache: false,
-      ...food,
+      ...withCleanNutrition(food),
     });
   } catch (err) {
     console.error(err);
@@ -411,7 +413,9 @@ exports.nutrientsForServing = async (req, res) => {
     if (source === "usda") {
       const cached = await foodCache.findByFdcId(code);
       if (cached) {
-        const perServing = scaleCachedNutrition(cached.nutrition, cached.servingSize, grams);
+        const perServing = omitZeroNutrition(
+          scaleCachedNutrition(cached.nutrition, cached.servingSize, grams)
+        );
         return res.status(200).json({
           success: true,
           fromCache: true,
@@ -426,7 +430,9 @@ exports.nutrientsForServing = async (req, res) => {
       const food = await fetchUsdaFood(code);
       const result = usdaFoodToScanResult(food);
       if (result) await foodCache.cacheFood(result);
-      const perServing = nutrientsForGramsFromUsda(food.foodNutrients, grams);
+      const perServing = omitZeroNutrition(
+        nutrientsForGramsFromUsda(food.foodNutrients, grams)
+      );
 
       return res.status(200).json({
         success: true,
@@ -441,7 +447,9 @@ exports.nutrientsForServing = async (req, res) => {
 
     const cached = await foodCache.findByBarcode(code);
     if (cached) {
-      const perServing = scaleCachedNutrition(cached.nutrition, cached.servingSize, grams);
+      const perServing = omitZeroNutrition(
+        scaleCachedNutrition(cached.nutrition, cached.servingSize, grams)
+      );
       return res.status(200).json({
         success: true,
         fromCache: true,
@@ -459,7 +467,7 @@ exports.nutrientsForServing = async (req, res) => {
     }
 
     await foodCache.cacheFood(tagOffFood(offProductToScanResult(p)));
-    const perServing = nutrientsForGrams(p.nutriments, grams);
+    const perServing = omitZeroNutrition(nutrientsForGrams(p.nutriments, grams));
 
     return res.status(200).json({
       success: true,

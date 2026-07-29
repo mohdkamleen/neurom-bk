@@ -3,6 +3,7 @@ const {
   getFoodByBarcodeModel,
   getFoodByNameModel,
 } = require("../food");
+const { withCleanNutrition } = require("../utils/foodHelpers");
 
 function tokenize(text = "") {
   return String(text)
@@ -43,7 +44,7 @@ function toApiFood(doc) {
   if (o.foodCategory) result.foodCategory = o.foodCategory;
   if (o.dataType) result.dataType = o.dataType;
 
-  return result;
+  return withCleanNutrition(result);
 }
 
 function toCacheDocument(food, query = "") {
