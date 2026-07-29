@@ -1,0 +1,694 @@
+{
+  "info": {
+    "_postman_id": "neurom-api-collection",
+    "name": "NeuroM API",
+    "description": "Complete NeuroM backend API. Base path: `/api` on port 5000 by default.\n\n**Setup**\n1. Import this collection into Postman.\n2. Set `baseUrl` (default `http://localhost:5000/api`).\n3. Run **Auth → Login** or **Auth → Verify OTP** — the collection saves `token` automatically.\n4. Protected requests inherit Bearer `{{token}}`.\n\n**Admin** routes require a user with `role: admin`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "serverUrl", "value": "http://localhost:5000", "type": "string" },
+    { "key": "baseUrl", "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "email", "value": "user@example.com", "type": "string" },
+    { "key": "password", "value": "SecurePass1!", "type": "string" },
+    { "key": "otp", "value": "1234", "type": "string" },
+    { "key": "threadId", "value": "", "type": "string" },
+    { "key": "mealId", "value": "", "type": "string" },
+    { "key": "glucoseReadingId", "value": "", "type": "string" },
+    { "key": "peerUserId", "value": "", "type": "string" },
+    { "key": "adminUserId", "value": "", "type": "string" },
+    { "key": "foodBarcode", "value": "3017620422003", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API root",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{serverUrl}}/",
+            "description": "Root server check (not under /api). Response: NeuroM API running"
+          }
+        },
+        {
+          "name": "Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Connectivity check for the mobile app."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Send OTP (signup)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/sendOtp",
+            "description": "Sends 4-digit OTP to email for new registration. Fails if email already exists."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/resendOtp"
+          }
+        },
+        {
+          "name": "Verify OTP (signup)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 200 && json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/verifyOtp",
+            "description": "Creates account after OTP verification. Password must meet policy. Returns token + user."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 200 && json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Returns token, user, onboardingCompleted."
+          }
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\",\n  \"newPassword\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          }
+        },
+        {
+          "name": "Get profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/profile"
+          }
+        },
+        {
+          "name": "Update profile (PATCH)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"gender\": \"female\",\n  \"bloodGroup\": \"O+\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"height\": 165,\n  \"weight\": 62,\n  \"phone\": \"+15551234567\",\n  \"calorieGoal\": 2000,\n  \"glucoseTargetLow\": 70,\n  \"glucoseTargetHigh\": 180\n}"
+            },
+            "url": "{{baseUrl}}/auth/profile",
+            "description": "Aliases: fullName→name, dob→dateOfBirth. Cannot update password, role, isBlocked."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding",
+      "item": [
+        {
+          "name": "Onboarding status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/onboarding/status"
+          }
+        },
+        {
+          "name": "Complete onboarding",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personalization\": {\n    \"name\": \"Jane Doe\",\n    \"age\": \"32\"\n  },\n  \"bloodGroup\": {\n    \"selectedBloodGroup\": \"O+\"\n  },\n  \"physicalMetrics\": {\n    \"height\": \"165\",\n    \"heightUnit\": \"cm\",\n    \"weight\": \"62\",\n    \"weightUnit\": \"kg\"\n  },\n  \"diabetes\": {\n    \"diabetesDiagnosed\": \"yes\",\n    \"diabetesType\": \"type2\",\n    \"meausureGlucose\": \"daily\"\n  },\n  \"bloodSugar\": {\n    \"bloodSugar\": \"family history\",\n    \"bsFlag\": \"moderate\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/onboarding/complete",
+            "description": "Matches neurom-native-fr AsyncStorage ONBOARDING_FORM shape."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Home dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/home?glucoseRange=7d",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "home"],
+              "query": [
+                {
+                  "key": "glucoseRange",
+                  "value": "7d",
+                  "description": "7d | 14d | 30d"
+                }
+              ]
+            },
+            "description": "greeting, glucoseCard (7d/14d/30d), dietChart.segments, insights, topImpactFoods."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Glucose",
+      "item": [
+        {
+          "name": "List glucose readings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/glucose?range=7d",
+              "host": ["{{baseUrl}}"],
+              "path": ["glucose"],
+              "query": [{ "key": "range", "value": "7d", "description": "7d | 14d | 30d" }]
+            }
+          }
+        },
+        {
+          "name": "Create glucose reading",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 201 && json.reading && json.reading._id) {",
+                  "  pm.collectionVariables.set('glucoseReadingId', json.reading._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valueMgDl\": 118,\n  \"measuredAt\": \"2026-06-04T08:30:00.000Z\",\n  \"notes\": \"Fasting\"\n}"
+            },
+            "url": "{{baseUrl}}/glucose"
+          }
+        },
+        {
+          "name": "Delete glucose reading",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/glucose/{{glucoseReadingId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Entries",
+      "item": [
+        {
+          "name": "Get manual entries (foods + medicines + glucose)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/entries/manual?date=2026-06-04",
+              "host": ["{{baseUrl}}"],
+              "path": ["entries", "manual"],
+              "query": [
+                { "key": "from", "value": "2026-06-01", "disabled": true },
+                { "key": "to", "value": "2026-06-08", "disabled": true },
+                { "key": "date", "value": "2026-06-04" }
+              ]
+            },
+            "description": "Returns foods, medicines, and glucoseReadings in the same shape as POST."
+          }
+        },
+        {
+          "name": "Get entry by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/entries/{{entryId}}?type=meal",
+              "host": ["{{baseUrl}}"],
+              "path": ["entries", "{{entryId}}"],
+              "query": [{ "key": "type", "value": "meal", "description": "meal | medicine | glucose (optional)" }]
+            }
+          }
+        },
+        {
+          "name": "Get barcode entry by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/entries/barcode/{{entryId}}"
+          }
+        },
+        {
+          "name": "Manual entry (foods + medicines + glucose)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"foods\": [\n    {\n      \"foodType\": \"Breakfast\",\n      \"name\": \"Oatmeal with berries\",\n      \"servingSize\": \"100\",\n      \"servings\": 1,\n      \"nutrition\": { \"calories\": 150, \"carbs\": 27, \"fat\": 3, \"protein\": 5, \"sugar\": 1, \"fiber\": 4 },\n      \"consumedAt\": \"2026-06-04T09:00:00.000Z\"\n    }\n  ],\n  \"medicines\": [\n    {\n      \"name\": \"Metformin\",\n      \"dosage\": \"500\",\n      \"form\": \"Tablet\",\n      \"quantity\": 1,\n      \"takenAt\": \"2026-06-04T08:00:00.000Z\"\n    }\n  ],\n  \"glucose\": {\n    \"valueMgDl\": 112,\n    \"measuredAt\": \"2026-06-04T08:30:00.000Z\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/entries/manual",
+            "description": "At least one of foods, medicines, or glucose required. Legacy `{ meal, portion, glucoseMgDl }` still works."
+          }
+        },
+        {
+          "name": "Barcode scan entry (food)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"4000539001404\",\n  \"productName\": \"Dark Chocolate\",\n  \"brand\": \"Amul\",\n  \"category\": \"food\",\n  \"eatenAt\": \"2026-06-04T12:00:00.000Z\",\n  \"foodType\": \"Snack\",\n  \"servingSize\": \"120\",\n  \"servings\": 1,\n  \"nutrition\": { \"calories\": 120, \"carbs\": 20, \"fat\": 2, \"protein\": 5, \"sugar\": 22, \"fiber\": 18 }\n}"
+            },
+            "url": "{{baseUrl}}/entries/barcode"
+          }
+        },
+        {
+          "name": "Barcode scan entry (medicine)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"barcode\": \"8901207060428\",\n  \"productName\": \"Himalaya Diabecon DS\",\n  \"brand\": \"Himalaya\",\n  \"category\": \"medicine\",\n  \"eatenAt\": \"2026-06-04T08:00:00.000Z\",\n  \"medicine\": {\n    \"medicineName\": \"Diabecon DS\",\n    \"dosage\": 60,\n    \"dosageUnit\": \"mg\",\n    \"form\": \"Tablet\",\n    \"quantity\": 1\n  }\n}"
+            },
+            "url": "{{baseUrl}}/entries/barcode"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Food (Open Food Facts)",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Search foods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/food/search?q=egg&page=1&pageSize=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["food", "search"],
+              "query": [
+                { "key": "q", "value": "egg" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Product by barcode",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/food/product/{{foodBarcode}}"
+          }
+        },
+        {
+          "name": "Nutrients for serving (grams)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/food/nutrients-for-serving?code={{foodBarcode}}&grams=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["food", "nutrients-for-serving"],
+              "query": [
+                { "key": "code", "value": "{{foodBarcode}}" },
+                { "key": "grams", "value": "100" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Meals",
+      "item": [
+        {
+          "name": "List meals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/meals?from=2026-06-01T00:00:00.000Z&to=2026-06-30T23:59:59.999Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["meals"],
+              "query": [
+                { "key": "from", "value": "2026-06-01T00:00:00.000Z", "disabled": true },
+                { "key": "to", "value": "2026-06-30T23:59:59.999Z", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get meal by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/meals/{{mealId}}"
+          }
+        },
+        {
+          "name": "Create meal log",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (pm.response.code === 201 && json.meal && json.meal._id) {",
+                  "  pm.collectionVariables.set('mealId', json.meal._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mealType\": \"Breakfast\",\n  \"consumedAt\": \"2026-06-04T08:00:00.000Z\",\n  \"notes\": \"Home breakfast\",\n  \"items\": [\n    {\n      \"foodName\": \"Scrambled eggs\",\n      \"openFoodFactsCode\": \"{{foodBarcode}}\",\n      \"servingAmount\": 100,\n      \"servingUnit\": \"g\",\n      \"servings\": 1,\n      \"calories\": 155,\n      \"carbsG\": 1.1,\n      \"fatG\": 11,\n      \"proteinG\": 13,\n      \"sugarG\": 1.1,\n      \"fiberG\": 0,\n      \"mealTiming\": \"after_meal\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/meals",
+            "description": "mealType: Breakfast | Lunch | Dinner | Snack | Other. mealTiming: before_meal | after_meal | unspecified."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medicine",
+      "item": [
+        {
+          "name": "List medicine logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/medicine",
+              "host": ["{{baseUrl}}"],
+              "path": ["medicine"],
+              "query": [
+                { "key": "from", "value": "", "disabled": true },
+                { "key": "to", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create medicine log",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Metformin\",\n  \"dosageValue\": 500,\n  \"dosageUnit\": \"mg\",\n  \"form\": \"tablet\",\n  \"quantity\": 1,\n  \"takenAt\": \"2026-06-04T07:00:00.000Z\",\n  \"barcode\": null\n}"
+            },
+            "url": "{{baseUrl}}/medicine"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Predictions",
+      "item": [
+        {
+          "name": "Run prediction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-05-01\",\n  \"endDate\": \"2026-06-04\"\n}"
+            },
+            "url": "{{baseUrl}}/predictions/run"
+          }
+        },
+        {
+          "name": "Prediction summary (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/predictions/summary?startDate=2026-05-01&endDate=2026-06-04",
+              "host": ["{{baseUrl}}"],
+              "path": ["predictions", "summary"],
+              "query": [
+                { "key": "startDate", "value": "2026-05-01", "disabled": true },
+                { "key": "endDate", "value": "2026-06-04", "disabled": true }
+              ]
+            },
+            "description": "Full payload for PredictionSummaryScreen."
+          }
+        },
+        {
+          "name": "Prediction summary (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startDate\": \"2026-05-01\",\n  \"endDate\": \"2026-06-04\"\n}"
+            },
+            "url": "{{baseUrl}}/predictions/summary"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Diet chart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/diet?date=2026-06-04",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "diet"],
+              "query": [{ "key": "date", "value": "2026-06-04", "description": "YYYY-MM-DD", "disabled": true }]
+            }
+          }
+        },
+        {
+          "name": "Top impact foods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/top-foods?days=7",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "top-foods"],
+              "query": [{ "key": "days", "value": "7", "description": "1–90" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "List threads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/messages/threads"
+          }
+        },
+        {
+          "name": "Create direct thread",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.thread && json.thread._id) {",
+                  "  pm.collectionVariables.set('threadId', json.thread._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"peerUserId\": \"{{peerUserId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/messages/threads"
+          }
+        },
+        {
+          "name": "Get thread messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/messages/threads/{{threadId}}/messages?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "threads", "{{threadId}}", "messages"],
+              "query": [{ "key": "limit", "value": "50", "description": "1–100" }]
+            }
+          }
+        },
+        {
+          "name": "Send message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Hello from Postman\"\n}"
+            },
+            "url": "{{baseUrl}}/messages/threads/{{threadId}}/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Requires Bearer token for user with role `admin`.",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | blocked",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update user",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+15559876543\",\n  \"role\": \"user\",\n  \"isBlocked\": false\n}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{adminUserId}}",
+            "description": "role: user | admin"
+          }
+        },
+        {
+          "name": "Delete all users",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/admin/users/all",
+            "description": "Destructive — removes every user document."
+          }
+        }
+      ]
+    }
+  ]
+}

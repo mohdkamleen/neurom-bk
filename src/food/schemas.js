@@ -1,0 +1,67 @@
+const mongoose = require("mongoose");
+
+const nutritionSchema = new mongoose.Schema(
+  {
+    calories: { type: Number, default: 0 },
+    carbs: { type: Number, default: 0 },
+    fat: { type: Number, default: 0 },
+    protein: { type: Number, default: 0 },
+    sugar: { type: Number, default: 0 },
+    fiber: { type: Number, default: 0 },
+    water: { type: Number, default: 0 },
+    saturatedFat: { type: Number, default: 0 },
+    monounsaturatedFat: { type: Number, default: 0 },
+    polyunsaturatedFat: { type: Number, default: 0 },
+    transFat: { type: Number, default: 0 },
+    cholesterol: { type: Number, default: 0 },
+    salt: { type: Number, default: 0 },
+    sodium: { type: Number, default: 0 },
+    potassium: { type: Number, default: 0 },
+    calcium: { type: Number, default: 0 },
+    iron: { type: Number, default: 0 },
+    magnesium: { type: Number, default: 0 },
+    phosphorus: { type: Number, default: 0 },
+    zinc: { type: Number, default: 0 },
+    copper: { type: Number, default: 0 },
+    manganese: { type: Number, default: 0 },
+    selenium: { type: Number, default: 0 },
+    vitaminA: { type: Number, default: 0 },
+    vitaminC: { type: Number, default: 0 },
+    vitaminD: { type: Number, default: 0 },
+    vitaminE: { type: Number, default: 0 },
+    vitaminK: { type: Number, default: 0 },
+    thiamin: { type: Number, default: 0 },
+    riboflavin: { type: Number, default: 0 },
+    niacin: { type: Number, default: 0 },
+    vitaminB6: { type: Number, default: 0 },
+    folate: { type: Number, default: 0 },
+    vitaminB12: { type: Number, default: 0 },
+    choline: { type: Number, default: 0 },
+    caffeine: { type: Number, default: 0 },
+    sucrose: { type: Number, default: 0 },
+    glucose: { type: Number, default: 0 },
+    fructose: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const foodFields = {
+  source: {
+    type: String,
+    enum: ["openfoodfacts", "usda"],
+    required: true,
+  },
+  barcode: { type: String },
+  fdcId: { type: String },
+  productName: { type: String, required: true },
+  brand: { type: String },
+  imageUrl: { type: String },
+  servingSize: { type: String, default: "100" },
+  servings: { type: Number, default: 1 },
+  nutrition: { type: nutritionSchema, default: () => ({}) },
+  foodCategory: { type: String },
+  dataType: { type: String },
+  cachedAt: { type: Date, default: Date.now },
+};
+
+module.exports = { nutritionSchema, foodFields };

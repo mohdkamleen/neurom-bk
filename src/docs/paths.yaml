@@ -1,0 +1,892 @@
+paths:
+
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+
+  /auth/sendOtp:
+    post:
+      tags: [Auth]
+      summary: Send OTP to email for registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password]
+              properties:
+                email:    { type: string, format: email, example: user@example.com }
+                name:     { type: string, example: Alex }
+                password: { type: string, example: Secret@123 }
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400": { description: Validation error }
+        "409": { description: Email already in use }
+
+  /auth/resendOtp:
+    post:
+      tags: [Auth]
+      summary: Resend OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: OTP resent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+
+  /auth/verifyOtp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and complete registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email: { type: string, format: email }
+                otp:   { type: string, example: "123456" }
+      responses:
+        "200":
+          description: Email verified, JWT returned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { description: Invalid or expired OTP }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:    { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401": { description: Invalid credentials }
+
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Sign in / register with Google ID token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+
+  /auth/apple:
+    post:
+      tags: [Auth]
+      summary: Sign in / register with Apple identity token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identityToken]
+              properties:
+                identityToken: { type: string }
+                fullName:
+                  type: object
+                  properties:
+                    givenName:  { type: string }
+                    familyName: { type: string }
+      responses:
+        "200":
+          description: JWT token + user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Send password-reset email
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Reset email sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:    { type: string }
+                password: { type: string, example: NewSecret@123 }
+      responses:
+        "200":
+          description: Password updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "400": { description: Invalid or expired token }
+
+  /auth/profile:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  user:    { $ref: "#/components/schemas/User" }
+        "401": { description: Unauthorized }
+    patch:
+      tags: [Auth]
+      summary: Update current user profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:        { type: string }
+                phone:       { type: string }
+                gender:      { type: string }
+                dateOfBirth: { type: string, format: date-time }
+                avatarUrl:   { type: string }
+                calorieGoal: { type: integer }
+                glucoseTargetLow:  { type: number }
+                glucoseTargetHigh: { type: number }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  user:    { $ref: "#/components/schemas/User" }
+
+  # ── Onboarding ────────────────────────────────────────────────────────────────
+
+  /onboarding/status:
+    get:
+      tags: [Onboarding]
+      summary: Check if the current user has completed onboarding
+      responses:
+        "200":
+          description: Onboarding status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:             { type: boolean }
+                  onboardingCompleted: { type: boolean }
+                  hasName:             { type: boolean }
+        "401": { description: Unauthorized }
+
+  /onboarding/complete:
+    post:
+      tags: [Onboarding]
+      summary: Submit all onboarding answers
+      description: |
+        Accepts the full `ONBOARDING_FORM` AsyncStorage payload from the mobile app.
+        Saves health profile data and marks `onboardingCompleted = true`.
+        All sections are optional — only provided fields are updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingPayload" }
+      responses:
+        "200":
+          description: Onboarding saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  user:    { $ref: "#/components/schemas/User" }
+        "401": { description: Unauthorized }
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+
+  /dashboard/home:
+    get:
+      tags: [Dashboard]
+      summary: Get home screen data (glucose summary, meals, medicines, predictions)
+      responses:
+        "200":
+          description: Home dashboard payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:    { type: object }
+        "401": { description: Unauthorized }
+
+  # ── Glucose ───────────────────────────────────────────────────────────────────
+
+  /glucose:
+    get:
+      tags: [Glucose]
+      summary: List glucose readings for the current user
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+          description: Start date filter (YYYY-MM-DD)
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+          description: End date filter (YYYY-MM-DD)
+      responses:
+        "200":
+          description: List of readings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  readings:
+                    type: array
+                    items: { $ref: "#/components/schemas/GlucoseReading" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Glucose]
+      summary: Log a new glucose reading
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:      { type: number, example: 105 }
+                unit:       { type: string, example: mg/dL }
+                type:       { type: string, example: fasting }
+                note:       { type: string }
+                recordedAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Reading created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  reading: { $ref: "#/components/schemas/GlucoseReading" }
+        "401": { description: Unauthorized }
+
+  /glucose/{id}:
+    delete:
+      tags: [Glucose]
+      summary: Delete a glucose reading
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SuccessMessage" }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  # ── Meals ─────────────────────────────────────────────────────────────────────
+
+  /meals:
+    get:
+      tags: [Meals]
+      summary: List meal logs for the current user
+      parameters:
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+          description: Filter by date (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Meal list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meals:
+                    type: array
+                    items: { $ref: "#/components/schemas/MealLog" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Meals]
+      summary: Log a meal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, calories]
+              properties:
+                name:     { type: string, example: Grilled chicken }
+                calories: { type: number, example: 320 }
+                mealType: { type: string, example: lunch }
+                loggedAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Meal logged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meal:    { $ref: "#/components/schemas/MealLog" }
+        "401": { description: Unauthorized }
+
+  /meals/{id}:
+    get:
+      tags: [Meals]
+      summary: Get a single meal log
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Meal detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  meal:    { $ref: "#/components/schemas/MealLog" }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  # ── Medicine ──────────────────────────────────────────────────────────────────
+
+  /medicine:
+    get:
+      tags: [Medicine]
+      summary: List medicine logs for the current user
+      responses:
+        "200":
+          description: Medicine list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  medicines:
+                    type: array
+                    items: { $ref: "#/components/schemas/MedicineLog" }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Medicine]
+      summary: Log a medicine intake
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:    { type: string, example: Metformin }
+                dose:    { type: string, example: 500mg }
+                takenAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Medicine logged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  medicine: { $ref: "#/components/schemas/MedicineLog" }
+        "401": { description: Unauthorized }
+
+  # ── Manual entries ────────────────────────────────────────────────────────────
+
+  /entries/manual:
+    get:
+      tags: [Entries]
+      summary: List manual entry data (foods, medicines, glucose)
+      description: Returns the same field shapes as POST /entries/manual.
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+          description: Filter to a single calendar day (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Entry details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:         { type: boolean }
+                  from:            { type: string, format: date-time }
+                  to:              { type: string, format: date-time }
+                  foods:           { type: array, items: { type: object } }
+                  medicines:       { type: array, items: { type: object } }
+                  glucoseReadings: { type: array, items: { type: object } }
+        "401": { description: Unauthorized }
+    post:
+      tags: [Entries]
+      summary: Submit manual health data (foods, medicines, glucose)
+      description: |
+        Full payload from neurom-native-fr Manual Entry screen.
+        Legacy `{ meal, portion, glucoseMgDl }` is still accepted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                foods:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      foodType:  { type: string, example: Breakfast }
+                      name:      { type: string }
+                      servingSize: { type: string, example: "100" }
+                      servings:  { type: number }
+                      nutrition:
+                        type: object
+                        properties:
+                          calories: { type: number }
+                          carbs:    { type: number }
+                          fat:      { type: number }
+                          protein:  { type: number }
+                          sugar:    { type: number }
+                          fiber:    { type: number }
+                      consumedAt: { type: string, format: date-time }
+                medicines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:     { type: string }
+                      dosage:   { type: string }
+                      form:     { type: string }
+                      quantity: { type: number }
+                      takenAt:  { type: string, format: date-time }
+                glucose:
+                  type: object
+                  properties:
+                    valueMgDl:  { type: number }
+                    measuredAt: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Entry saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  message:   { type: string }
+                  meals:     { type: array, items: { type: object } }
+                  medicines: { type: array, items: { type: object } }
+                  reading:   { type: object }
+        "401": { description: Unauthorized }
+
+  /entries/barcode/{id}:
+    get:
+      tags: [Entries]
+      summary: Get saved barcode scan entry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Barcode entry detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  entry:   { type: object }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  /entries/{id}:
+    get:
+      tags: [Entries]
+      summary: Get a single entry by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [meal, food, medicine, glucose] }
+          description: Optional — auto-detected when omitted
+      responses:
+        "200":
+          description: Entry detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  type:     { type: string }
+                  foods:    { type: array, items: { type: object } }
+                  medicine: { type: object }
+                  glucose:  { type: object }
+                  entry:    { type: object }
+        "404": { description: Not found }
+        "401": { description: Unauthorized }
+
+  /entries/barcode:
+    post:
+      tags: [Entries]
+      summary: Save scanned barcode entry (food or medicine)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [barcode, productName, category, eatenAt]
+              properties:
+                barcode:     { type: string }
+                productName: { type: string }
+                brand:       { type: string }
+                category:    { type: string, enum: [food, medicine] }
+                eatenAt:     { type: string, format: date-time }
+                foodType:    { type: string }
+                servingSize: { type: string }
+                servings:    { type: number }
+                nutrition:
+                  type: object
+                  properties:
+                    calories: { type: number }
+                    carbs:    { type: number }
+                    fat:      { type: number }
+                    protein:  { type: number }
+                    sugar:    { type: number }
+                    fiber:    { type: number }
+                medicine:
+                  type: object
+                  properties:
+                    medicineName: { type: string }
+                    dosage:       { type: number }
+                    dosageUnit:   { type: string }
+                    form:         { type: string }
+                    quantity:     { type: number }
+      responses:
+        "201":
+          description: Entry saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean }
+                  message:  { type: string }
+                  meal:     { type: object }
+                  medicine: { type: object }
+        "401": { description: Unauthorized }
+
+  # ── Food lookup (no auth — cache-first, then Open Food Facts / USDA) ─────────
+
+  /food/search:
+    get:
+      tags: [Food]
+      summary: Search foods by name
+      description: |
+        Cache-first search against `neurom_food.food_by_name`.
+        On cache miss, fetches from USDA (generic) and/or Open Food Facts (packaged)
+        and stores results in MongoDB.
+      security: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, example: "apple" }
+          description: Food name search term
+        - in: query
+          name: source
+          schema: { type: string, enum: [all, off, usda], default: all }
+          description: |
+            `all` — USDA generic + OFF packaged (default)
+            `off` — packaged products only (Open Food Facts)
+            `usda` — generic / non-packaged only (USDA FoodData Central)
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: Matching foods with nutrition
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "400": { description: Missing or invalid query }
+        "502": { description: Upstream food data service unavailable }
+
+  /food/generic/search:
+    get:
+      tags: [Food]
+      summary: Search generic / non-packaged foods (USDA only)
+      description: Shortcut for `GET /food/search?source=usda`. Same cache-first behaviour.
+      security: []
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, example: "apple raw" }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        "200":
+          description: USDA generic food results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodSearchResponse" }
+        "400": { description: Missing query }
+        "502": { description: USDA service unavailable }
+
+  /food/barcode/{code}:
+    get:
+      tags: [Food]
+      summary: Barcode scan lookup (packaged food)
+      description: |
+        Cache-first lookup in `neurom_food.food_by_barcode`.
+        On miss, fetches from Open Food Facts and caches the result.
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+          description: Product barcode / Open Food Facts code
+      responses:
+        "200":
+          description: Product details ready for POST /entries/barcode
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/details/{code}:
+    get:
+      tags: [Food]
+      summary: Packaged food details by barcode
+      description: Same handler as `GET /food/barcode/{code}`.
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/generic/details/{fdcId}:
+    get:
+      tags: [Food]
+      summary: Generic food details by USDA FDC ID
+      description: |
+        Cache-first lookup in `neurom_food.food_by_name` by `fdcId`.
+        On miss, fetches from USDA FoodData Central and caches.
+      security: []
+      parameters:
+        - in: path
+          name: fdcId
+          required: true
+          schema: { type: string, example: "1750340" }
+          description: USDA FoodData Central ID
+      responses:
+        "200":
+          description: Generic food details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FoodDetailResponse" }
+        "404": { description: Food not found }
+        "502": { description: USDA service unavailable }
+
+  /food/product/{code}:
+    get:
+      tags: [Food]
+      summary: Raw Open Food Facts product payload
+      description: Returns the full upstream OFF product object (legacy / debugging).
+      security: []
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, example: "3017620422003" }
+      responses:
+        "200":
+          description: Raw OFF product
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:   { type: boolean }
+                  fromCache: { type: boolean }
+                  product:   { type: object }
+        "404": { description: Product not found }
+        "502": { description: Open Food Facts unavailable }
+
+  /food/nutrients-for-serving:
+    get:
+      tags: [Food]
+      summary: Scale nutrients to a custom serving (grams)
+      description: |
+        Cache-first. Supports Open Food Facts barcodes (`source=off`) and
+        USDA FDC IDs (`source=usda`).
+      security: []
+      parameters:
+        - in: query
+          name: source
+          schema: { type: string, enum: [off, usda], default: off }
+        - in: query
+          name: code
+          schema: { type: string }
+          description: Barcode when source=off
+        - in: query
+          name: fdcId
+          schema: { type: string }
+          description: USDA FDC ID when source=usda (alias for code)
+        - in: query
+          name: grams
+          required: true
+          schema: { type: number, example: 150 }
+          description: Serving weight in grams
+      responses:
+        "200":
+          description: Scaled per-serving nutrients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:       { type: boolean }
+                  fromCache:     { type: boolean }
+                  source:        { type: string, enum: [openfoodfacts, usda] }
+                  code:          { type: string, nullable: true }
+                  fdcId:         { type: string, nullable: true }
+                  product_name:  { type: string }
+                  serving_grams: { type: number }
+                  perServing:
+                    type: object
+                    properties:
+                      grams:     { type: number }
+                      calories:  { type: number }
+                      carbsG:    { type: number }
+                      fatG:      { type: number }
+                      proteinG:  { type: number }
+                      sugarG:    { type: number }
+                      fiberG:    { type: number }
+        "400": { description: Missing code or grams }
+        "404": { description: Product not found }
+        "502": { description: Upstream service unavailable }
