@@ -30,6 +30,9 @@ function toApiFood(doc) {
       protein: 0,
       sugar: 0,
       fiber: 0,
+      saturatedFat: 0,
+      sodium: 0,
+      cholesterol: 0,
     },
   };
 

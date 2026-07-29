@@ -481,6 +481,7 @@ function scaleCachedNutrition(nutrition = {}, servingSize = "100", grams) {
   const baseGrams = Number.parseFloat(servingSize) || 100;
   const scale = grams / baseGrams;
   const round2 = (n) => Math.round((n || 0) * scale * 100) / 100;
+  const round3 = (n) => Math.round((n || 0) * scale * 1000) / 1000;
   return {
     grams,
     calories: Math.round((nutrition.calories || 0) * scale),
@@ -489,5 +490,38 @@ function scaleCachedNutrition(nutrition = {}, servingSize = "100", grams) {
     proteinG: round2(nutrition.protein),
     sugarG: round2(nutrition.sugar),
     fiberG: round2(nutrition.fiber),
+    saturatedFatG: round2(nutrition.saturatedFat),
+    monounsaturatedFatG: round2(nutrition.monounsaturatedFat),
+    polyunsaturatedFatG: round2(nutrition.polyunsaturatedFat),
+    transFatG: round2(nutrition.transFat),
+    cholesterolMg: round2(nutrition.cholesterol),
+    saltG: round3(nutrition.salt),
+    sodiumMg: round2(nutrition.sodium),
+    potassiumMg: round2(nutrition.potassium),
+    calciumMg: round2(nutrition.calcium),
+    ironMg: round2(nutrition.iron),
+    magnesiumMg: round2(nutrition.magnesium),
+    phosphorusMg: round2(nutrition.phosphorus),
+    zincMg: round2(nutrition.zinc),
+    copperMg: round2(nutrition.copper),
+    manganeseMg: round2(nutrition.manganese),
+    seleniumMcg: round3(nutrition.selenium),
+    vitaminAMcg: round3(nutrition.vitaminA),
+    vitaminCMg: round2(nutrition.vitaminC),
+    vitaminDMcg: round3(nutrition.vitaminD),
+    vitaminEMg: round2(nutrition.vitaminE),
+    vitaminKMcg: round3(nutrition.vitaminK),
+    thiaminMg: round3(nutrition.thiamin),
+    riboflavinMg: round3(nutrition.riboflavin),
+    niacinMg: round2(nutrition.niacin),
+    vitaminB6Mg: round3(nutrition.vitaminB6),
+    folateMcg: round3(nutrition.folate),
+    vitaminB12Mcg: round3(nutrition.vitaminB12),
+    cholineMg: round2(nutrition.choline),
+    caffeineMg: round2(nutrition.caffeine),
+    waterG: round2(nutrition.water),
+    sucroseG: round2(nutrition.sucrose),
+    glucoseG: round2(nutrition.glucose),
+    fructoseG: round2(nutrition.fructose),
   };
 }
