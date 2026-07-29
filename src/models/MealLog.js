@@ -11,12 +11,15 @@ const foodItemSchema = new mongoose.Schema(
     servingAmount: { type: Number },
     servingUnit: { type: String, default: "g" },
     servings: { type: Number, default: 1 },
+    // Legacy flat macros — kept for meal aggregates / predictions
     carbsG: { type: Number, default: 0 },
     calories: { type: Number, default: 0 },
     fatG: { type: Number, default: 0 },
     proteinG: { type: Number, default: 0 },
     sugarG: { type: Number, default: 0 },
     fiberG: { type: Number, default: 0 },
+    // Full per-serving nutrition map (frontend shape; Mixed so extras aren't stripped)
+    nutrition: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
     mealTiming: { type: String, enum: MEAL_TIMING, default: "unspecified" },
   },
   { _id: true }

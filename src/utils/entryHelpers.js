@@ -1,5 +1,123 @@
 const { MEAL_TYPES } = require("../models/MealLog");
 
+/** Frontend-shaped nutrition keys we persist on meal items. */
+const NUTRITION_KEYS = [
+  "calories",
+  "carbs",
+  "fat",
+  "protein",
+  "sugar",
+  "fiber",
+  "water",
+  "saturatedFat",
+  "monounsaturatedFat",
+  "polyunsaturatedFat",
+  "transFat",
+  "cholesterol",
+  "salt",
+  "sodium",
+  "potassium",
+  "calcium",
+  "iron",
+  "magnesium",
+  "phosphorus",
+  "zinc",
+  "copper",
+  "manganese",
+  "selenium",
+  "vitaminA",
+  "vitaminC",
+  "vitaminD",
+  "vitaminE",
+  "vitaminK",
+  "thiamin",
+  "riboflavin",
+  "niacin",
+  "vitaminB6",
+  "folate",
+  "vitaminB12",
+  "choline",
+  "caffeine",
+  "sucrose",
+  "glucose",
+  "fructose",
+];
+
+/** Aliases from request / legacy flat fields → frontend keys. */
+const NUTRITION_ALIASES = {
+  carbsG: "carbs",
+  fatG: "fat",
+  proteinG: "protein",
+  sugarG: "sugar",
+  fiberG: "fiber",
+  saturatedFatG: "saturatedFat",
+  monounsaturatedFatG: "monounsaturatedFat",
+  polyunsaturatedFatG: "polyunsaturatedFat",
+  transFatG: "transFat",
+  cholesterolMg: "cholesterol",
+  saltG: "salt",
+  sodiumMg: "sodium",
+  potassiumMg: "potassium",
+  calciumMg: "calcium",
+  ironMg: "iron",
+  magnesiumMg: "magnesium",
+  phosphorusMg: "phosphorus",
+  zincMg: "zinc",
+  copperMg: "copper",
+  manganeseMg: "manganese",
+  seleniumMcg: "selenium",
+  vitaminAMcg: "vitaminA",
+  vitaminCMg: "vitaminC",
+  vitaminDMcg: "vitaminD",
+  vitaminEMg: "vitaminE",
+  vitaminKMcg: "vitaminK",
+  thiaminMg: "thiamin",
+  riboflavinMg: "riboflavin",
+  niacinMg: "niacin",
+  vitaminB6Mg: "vitaminB6",
+  folateMcg: "folate",
+  vitaminB12Mcg: "vitaminB12",
+  cholineMg: "choline",
+  caffeineMg: "caffeine",
+  waterG: "water",
+  sucroseG: "sucrose",
+  glucoseG: "glucose",
+  fructoseG: "fructose",
+};
+
+function omitZeroNutrition(nutrition = {}) {
+  const out = {};
+  for (const [key, value] of Object.entries(nutrition)) {
+    if (value == null) continue;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) continue;
+    out[key] = n;
+  }
+  return out;
+}
+
+/**
+ * Normalize incoming nutrition (frontend map and/or legacy *G/*Mg keys)
+ * into the frontend-shaped map used by food APIs.
+ */
+function normalizeNutritionMap(nutrition = {}) {
+  const src =
+    nutrition && typeof nutrition === "object" && !Array.isArray(nutrition)
+      ? nutrition
+      : {};
+  const out = {};
+
+  for (const [key, value] of Object.entries(src)) {
+    const dest = NUTRITION_ALIASES[key] || key;
+    if (!NUTRITION_KEYS.includes(dest)) continue;
+    const n = Number(value);
+    if (!Number.isFinite(n)) continue;
+    out[dest] = n;
+  }
+
+  return out;
+}
+
 function parseTimestamp(value, fallback = new Date()) {
   if (!value) return fallback;
   const d = new Date(value);
@@ -13,13 +131,15 @@ function parseServingAmount(raw) {
 }
 
 function mapNutrition(nutrition = {}) {
+  const full = normalizeNutritionMap(nutrition);
   return {
-    calories: Number(nutrition.calories) || 0,
-    carbsG: Number(nutrition.carbs ?? nutrition.carbsG) || 0,
-    fatG: Number(nutrition.fat ?? nutrition.fatG) || 0,
-    proteinG: Number(nutrition.protein ?? nutrition.proteinG) || 0,
-    sugarG: Number(nutrition.sugar ?? nutrition.sugarG) || 0,
-    fiberG: Number(nutrition.fiber ?? nutrition.fiberG) || 0,
+    calories: Number(full.calories) || 0,
+    carbsG: Number(full.carbs) || 0,
+    fatG: Number(full.fat) || 0,
+    proteinG: Number(full.protein) || 0,
+    sugarG: Number(full.sugar) || 0,
+    fiberG: Number(full.fiber) || 0,
+    nutrition: omitZeroNutrition(full),
   };
 }
 
@@ -82,14 +202,18 @@ function parseGlucoseValue(raw) {
 }
 
 function itemNutritionToFrontend(item = {}) {
-  return {
-    calories: item.calories ?? 0,
-    carbs: item.carbsG ?? 0,
-    fat: item.fatG ?? 0,
-    protein: item.proteinG ?? 0,
-    sugar: item.sugarG ?? 0,
-    fiber: item.fiberG ?? 0,
-  };
+  const fromNested = normalizeNutritionMap(item.nutrition || {});
+  const fromFlat = normalizeNutritionMap({
+    calories: item.calories,
+    carbsG: item.carbsG,
+    fatG: item.fatG,
+    proteinG: item.proteinG,
+    sugarG: item.sugarG,
+    fiberG: item.fiberG,
+  });
+
+  // Nested map wins for extras; flat macros fill gaps for older documents
+  return omitZeroNutrition({ ...fromFlat, ...fromNested });
 }
 
 function parseBrandFromNotes(notes) {
@@ -228,9 +352,12 @@ function parseDateRange(query = {}) {
 }
 
 module.exports = {
+  NUTRITION_KEYS,
   parseTimestamp,
   parseServingAmount,
   mapNutrition,
+  normalizeNutritionMap,
+  omitZeroNutrition,
   normalizeMealType,
   foodToMealItem,
   groupFoodsIntoMeals,
