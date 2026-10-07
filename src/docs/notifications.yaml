@@ -1,0 +1,151 @@
+paths:
+  /notifications/settings:
+    get:
+      tags: [Notifications]
+      summary: Get notification delivery and insight preferences
+      responses:
+        "200":
+          description: Current preferences
+        "401": { description: Missing or invalid token }
+    patch:
+      tags: [Notifications]
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pushNotifications: { type: boolean }
+                emailNotifications: { type: boolean }
+                healthInsightAlerts: { type: boolean }
+      responses:
+        "200": { description: Updated preferences }
+        "401": { description: Missing or invalid token }
+
+  /notifications/inbox:
+    get:
+      tags: [Notifications]
+      summary: List in-app notifications generated from saved reminders
+      responses:
+        "200": { description: Notification inbox }
+        "401": { description: Missing or invalid token }
+
+  /notifications/email:
+    post:
+      tags: [Notifications]
+      summary: Email the signed-in user their saved reminders
+      description: Sends only when email notifications are enabled.
+      responses:
+        "200": { description: Email sent or skipped }
+        "401": { description: Missing or invalid token }
+
+  /notifications/checkups:
+    get:
+      tags: [Notifications]
+      summary: List recommended checkups and the user's saved reminders
+      responses:
+        "200": { description: Recommended catalog plus custom reminders }
+        "401": { description: Missing or invalid token }
+    post:
+      tags: [Notifications]
+      summary: Create or update a checkup reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [frequency, startTime]
+              properties:
+                id: { type: string, description: Existing custom reminder id }
+                catalogKey:
+                  type: string
+                  enum: [hba1c, kidney, eye, cholesterol, thyroid, foot, glucose]
+                name: { type: string }
+                frequency:
+                  type: string
+                  enum: [one_time, hourly, daily, weekly, monthly, every_3_months, every_6_months, yearly]
+                startTime: { type: string, example: "10:00 AM" }
+                endTime: { type: string, example: "10:00 PM" }
+                repeatEveryHours: { type: number, example: 3 }
+                snoozeMinutes: { type: number, example: 10 }
+                snoozeTimes: { type: number, example: 3 }
+                weekday: { type: integer, minimum: 0, maximum: 6 }
+                monthDay: { type: integer, minimum: 1, maximum: 28 }
+                remindOn: { type: string, example: "2026-10-07" }
+      responses:
+        "201": { description: Reminder saved }
+        "400": { description: Validation error }
+        "401": { description: Missing or invalid token }
+
+  /notifications/checkups/{id}:
+    delete:
+      tags: [Notifications]
+      summary: Remove a checkup reminder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Removed }
+        "404": { description: Not found }
+
+  /notifications/medications:
+    get:
+      tags: [Notifications]
+      summary: List medication reminders
+      responses:
+        "200": { description: Medication reminders }
+    post:
+      tags: [Notifications]
+      summary: Create a medication reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, time]
+              properties:
+                name: { type: string, example: Metformin }
+                time: { type: string, example: "8:00 AM" }
+                enabled: { type: boolean }
+      responses:
+        "201": { description: Created }
+        "400": { description: Validation error }
+
+  /notifications/medications/{id}:
+    patch:
+      tags: [Notifications]
+      summary: Update a medication reminder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                time: { type: string }
+                enabled: { type: boolean }
+      responses:
+        "200": { description: Updated }
+        "404": { description: Not found }
+    delete:
+      tags: [Notifications]
+      summary: Remove a medication reminder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Removed }
+        "404": { description: Not found }

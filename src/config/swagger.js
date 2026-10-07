@@ -19,6 +19,7 @@ const options = {
       { name: "Entries", description: "Manual and barcode entries" },
       { name: "Food", description: "Food lookup — MongoDB cache, Open Food Facts, USDA" },
       { name: "Sharing", description: "Health data sharing and access management" },
+      { name: "Notifications", description: "Notification preferences, checkup reminders, and medication reminders" },
     ],
     servers: [
       { url: "/api", description: "Prefixed base path" },
