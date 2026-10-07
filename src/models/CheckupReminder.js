@@ -26,6 +26,7 @@ const checkupReminderSchema = new mongoose.Schema(
     snoozeMinutes: { type: Number, default: null },
     snoozeTimes: { type: Number, default: null },
     weekday: { type: Number, default: null },
+    weekdays: { type: [Number], default: undefined },
     monthDay: { type: Number, default: null },
     remindOn: { type: String, default: null },
   },

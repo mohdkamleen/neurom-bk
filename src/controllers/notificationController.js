@@ -58,6 +58,12 @@ function serializeCheckup(doc) {
     snoozeMinutes: doc.snoozeMinutes ?? null,
     snoozeTimes: doc.snoozeTimes ?? null,
     weekday: doc.weekday ?? null,
+    weekdays:
+      Array.isArray(doc.weekdays) && doc.weekdays.length
+        ? doc.weekdays
+        : doc.weekday != null
+          ? [doc.weekday]
+          : [],
     monthDay: doc.monthDay ?? null,
     remindOn: doc.remindOn || null,
   };
@@ -108,9 +114,21 @@ function readSchedule(body) {
         ? Number(body.snoozeTimes)
         : null,
     weekday: body.weekday != null && body.weekday !== "" ? Number(body.weekday) : null,
+    weekdays: Array.isArray(body.weekdays)
+      ? [...new Set(body.weekdays.map(Number))].filter(
+          (day) => Number.isInteger(day) && day >= 0 && day <= 6
+        )
+      : [],
     monthDay: body.monthDay != null && body.monthDay !== "" ? Number(body.monthDay) : null,
     remindOn: body.remindOn ? String(body.remindOn).trim() : null,
   };
+
+  if (!schedule.weekdays.length && schedule.weekday != null) {
+    schedule.weekdays = [schedule.weekday];
+  }
+  if (schedule.weekdays.length) {
+    schedule.weekday = schedule.weekdays[0];
+  }
 
   if (frequency === "hourly") {
     if (!schedule.endTime) {
@@ -121,16 +139,19 @@ function readSchedule(body) {
     }
   }
 
-  if (frequency === "weekly" && (schedule.weekday == null || schedule.weekday < 0 || schedule.weekday > 6)) {
+  if (frequency === "weekly" && !schedule.weekdays.length) {
     return { error: "weekday is required for weekly reminders" };
   }
 
-  if (frequency === "monthly" && (schedule.monthDay == null || schedule.monthDay < 1 || schedule.monthDay > 28)) {
+  if (frequency === "monthly" && (schedule.monthDay == null || schedule.monthDay < 1 || schedule.monthDay > 31)) {
     return { error: "monthDay is required for monthly reminders" };
   }
 
   if (
     (frequency === "one_time" ||
+      frequency === "daily" ||
+      frequency === "weekly" ||
+      frequency === "monthly" ||
       frequency === "every_3_months" ||
       frequency === "every_6_months" ||
       frequency === "yearly") &&
