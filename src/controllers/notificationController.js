@@ -396,23 +396,32 @@ exports.listInbox = async (req, res) => {
         kind: "checkup",
         title: `${item.name} reminder`,
         description: describeCheckup(item),
+        at: item.createdAt || item.updatedAt || null,
       })),
       ...medications.map((item) => ({
         id: `medication-${item._id}`,
         kind: "medication",
-        title: "Medication Reminder",
-        description: `${item.name} at ${item.time}`,
+        title: item.name,
+        description: `Medication reminder at ${item.time}`,
+        at: item.createdAt || item.updatedAt || null,
       })),
     ];
 
     if (prefs.healthInsightAlerts) {
-      notifications.unshift({
+      notifications.push({
         id: "health-insights",
         kind: "insight",
         title: "Health Insight Alerts",
         description: "Important health updates are turned on for this account.",
+        at: prefs.updatedAt || prefs.createdAt || null,
       });
     }
+
+    notifications.sort((left, right) => {
+      const leftTime = left.at ? new Date(left.at).getTime() : 0;
+      const rightTime = right.at ? new Date(right.at).getTime() : 0;
+      return rightTime - leftTime;
+    });
 
     return res.json({
       success: true,
